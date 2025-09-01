@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  apache:
+    build:
+      context: ./apache
+    ports:
+      - "8087:80"
+    volumes:
+      - ./:/var/www/html
+    container_name: portfolio_apache
+    depends_on:
+      - php
+      - mysql
+
+  php:
+    build:
+      context: ./php
+    volumes:
+      - ./:/var/www/html
+    container_name: portfolio_php
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    container_name: portfolio_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: mysecretpassword
+      MYSQL_DATABASE: test
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: portfolio_phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: mysecretpassword
+      UPLOAD_LIMIT: 50M
+      MEMORY_LIMIT: 256M
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+
+  sass:
+    image: node:18-alpine
+    container_name: portfolio_sass
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: >
+      sh -c "npm install -g sass && sass --watch scss:public/css"
+
+volumes:
+  mysql_data:
