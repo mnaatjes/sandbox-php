@@ -5,13 +5,13 @@ Portfolio Project
 ---
 
 ### Phase 1: Discovery and Planning
-- [ ] **Define the "Why"**
-  - [ ] Define the Primary Purpose
-  - [ ] Identify the Target Audience
+- [x] **Define the "Why"**
+  - [x] Define the Primary Purpose
+  - [x] Identify the Target Audience
 - [ ] **Competitive Analysis**
   - [ ] Analyze Competitors
 - [ ] **Scope and Feature Definition** (see [[../references/feature-reference.md]])
-  - [ ] Define Content Strategy
+  - [x] Define Content Strategy
   - [ ] Create a Feature List
   - [ ] Decide on Technology Stack
 - [ ] **Documentation**
