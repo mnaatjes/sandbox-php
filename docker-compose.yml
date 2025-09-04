@@ -5,10 +5,10 @@ services:
     build:
       context: ./apache
     ports:
-      - "8087:80"
+      - "8090:80"
     volumes:
       - ./:/var/www/html
-    container_name: portfolio_apache
+    container_name: sandbox_apache
     depends_on:
       - php
       - mysql
@@ -18,37 +18,43 @@ services:
       context: ./php
     volumes:
       - ./:/var/www/html
-    container_name: portfolio_php
+    container_name: sandbox_php
     depends_on:
       - mysql
 
   mysql:
     image: mysql:8.0
-    container_name: portfolio_mysql
+    container_name: sandbox_mysql
     environment:
       MYSQL_ROOT_PASSWORD: mysecretpassword
       MYSQL_DATABASE: test
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
     ports:
-      - "3308:3306"
+      - "3309:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: portfolio_phpmyadmin
+    container_name: sandbox_phpmyadmin
     environment:
       PMA_HOST: mysql
+      #PMA_USER: user
+      #PMA_PASSWORD: password
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: mysecretpassword
       UPLOAD_LIMIT: 50M
       MEMORY_LIMIT: 256M
     ports:
-      - "8080:80"
+      - "8091:80"
     depends_on:
       - mysql
 
   sass:
     image: node:18-alpine
-    container_name: portfolio_sass
+    container_name: sandbox_sass
     working_dir: /app
     volumes:
       - ./:/app
