@@ -8,9 +8,12 @@
     use MVCFrame\Tests\Cars\Toyota;
     use MVCFrame\Tests\Cars\Volvo;
     use MVCFrame\Tests\CarFactory;
-    
+    use MVCFrame\Tests\Classes\Pizza as ConcretePizza;
+    use MVCFrame\Tests\Fascades\Pizza;
+    use MVCFrame\Tests\Classes\ServiceContainer;
+
     // Debugging
-    $app = new TestApplication();
+    //$app = new TestApplication();
 
     /** 
      * Helper function
@@ -30,6 +33,12 @@
 
     }
 
-    dealership()->toyota(["camry", "yaris"]);
-    dealership(["99", "98", "97"]);
+    //dealership()->toyota(["camry", "yaris"]);
+    //dealership(["99", "98", "97"]);
+    
+
+    ServiceContainer::getInstance()->bind(ConcretePizza::class, function(){return new ConcretePizza();});
+
+    Pizza::withCheese();
+    Pizza::bake();
 ?>

@@ -20,7 +20,7 @@
             "MVCFrame\\": "src/"
         },
         "files": [
-            "src/Foundation/helpers.php"
+            "src/Foundation/app.php"
         ]
     },
     "autoload-dev": {
