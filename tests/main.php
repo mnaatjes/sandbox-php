@@ -4,7 +4,7 @@
     require_once(__DIR__ . '/../vendor/autoload.php');
 
 
-    use MVCFrame\Tests\Classes\TestApplication;
+    //use MVCFrame\Tests\Classes\TestApplication;
     use MVCFrame\Tests\Cars\Toyota;
     use MVCFrame\Tests\Cars\Volvo;
     use MVCFrame\Tests\CarFactory;
@@ -13,6 +13,7 @@
     use MVCFrame\ServiceContainer\Container;
     use MVCFrame\Tests\Classes\InstanceCounter;
     use MVCFrame\Tests\Classes\Singleton;
+    use MVCFrame\Tests\Classes\Vacuum;
 
     // Debugging
     //$app = new TestApplication();
@@ -46,7 +47,7 @@
     
     // Instance Debugging
     //app(InstanceCounter::class, function(){return new InstanceCounter();});
-
+    app(ConcretePizza::class, function(){return new ConcretePizza();});
     app()->singleton(InstanceCounter::class, function(){return new InstanceCounter();});
     app()->singleton(Singleton::class, function(){return Singleton::getInstance();});
 
@@ -67,6 +68,21 @@
     ];
 
     foreach($instances as $instance){
-        $instance->countOff();
+        //$instance->countOff();
     }
+
+    $hoover     = new Vacuum("wool", "bags", "kitty litter");
+    $bisel      = new Vacuum("poop", "hair", "food");
+
+    app(Vacuum::class, function($app){
+        return new Vacuum(
+            $app->resolve(InstanceCounter::class),
+            $app->resolve(Singleton::class),
+            $app->resolve(ConcretePizza::class)
+        );
+    });
+
+    //var_dump(app(Vacuum::class)->emptyBag());
+
+    app(\MVCFrame\Tests\Classes\TestApplication::class);
 ?>

@@ -1,6 +1,7 @@
 <?php
 
 	namespace MVCFrame\ServiceContainer;
+	use MVCFrame\ServiceContainer\ReflectionCache;
 
 	/**-------------------------------------------------------------------------*/
 	/** 
@@ -16,6 +17,8 @@
 		 */
 		private static ?Container $instance=NULL;
 
+		private ?ReflectionCache $cache;
+
 		/** 
 		 * Stores Services and Dependenies in key=>value pairs
 		 * @var array $bindings
@@ -30,6 +33,13 @@
 		 */
 		protected array $shared=[];
 
+		/**-------------------------------------------------------------------------*/
+		private function __construct(){
+			// Instantiate ReflectionCache
+			$this->cache = new ReflectionCache();
+
+			// TODO: Register all ServiceProviders
+		}
 		/**-------------------------------------------------------------------------*/
 		/**
 		 * Check for an instance of the ServiceContainer and create one if none exists
@@ -55,6 +65,7 @@
 		 */
 		/**-------------------------------------------------------------------------*/
 		public function bind(string $key, callable $handler): void{
+			// Bind $handler to $bindings
 			$this->bindings[$key] = $handler;
 		}
 
@@ -92,7 +103,14 @@
 		public function resolve(string $key){
 			// Check for array key
 			if(!array_key_exists($key, $this->bindings)){
-				throw new \Exception("Unable to resolve binding!");
+				// Attempt to register
+				$this->cache->register($key);
+				
+				// double check $key available in cache
+				
+				// Return instance from ReflectionCache
+					// On failure: trigger exception! 
+				return;
 			}
 
 			// First: Check if array key exists in $shared and its state
@@ -109,8 +127,13 @@
 			$resolver = $this->bindings[$key];
 
 			// Make instance
+			// bind ServiceContainer instance as parameter
 			/** @var callable Instance of binding */
-			$instance = $resolver();
+			$instance = $resolver($this);
+
+			// TODO: Determine if $handler contains an object
+			// TODO: Find dependencies on __construct()
+			// TODO: ReflectionCache()
 
 			// Third: Check if key exists in $shared and store instance in $shared
 			if(array_key_exists($key, $this->shared) && $this->shared[$key] === NULL){
@@ -121,6 +144,29 @@
 			// Return resolver default as method
 			return $instance;
 		}
+
+		/**-------------------------------------------------------------------------*/
+		/**
+		 * Prints Shared and Bindings Array
+		 */
+		/**-------------------------------------------------------------------------*/
+		public function debug(){
+			printf('%s', json_encode([
+				"shared" => $this->shared,
+				"bindings" => $this->bindings
+			], JSON_PRETTY_PRINT));
+		}
+
+		/**-------------------------------------------------------------------------*/
+
+		/**-------------------------------------------------------------------------*/
+		/**
+		 * Possible Features:
+		 * - Add properties to $bindings (or ReflectionCache array) to make sorting faster?
+		 * 		-> $this->cache[$key] = ["instance => {}, "method"=> "name", "type" ="controller"]
+		 * 		-> getControllers(){ return array_reduce($cache, function(){return has type "controller"}){}}
+		 */
+		/**-------------------------------------------------------------------------*/
 
 	}	
 ?>

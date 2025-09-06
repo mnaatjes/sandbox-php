@@ -6,14 +6,16 @@
 	 * Check for app() method
 	 */
 	if(!function_exists("app")){
-		
+		/**-------------------------------------------------------------------------*/
 		/**
 		 * Helper function linking ServiceContainer to app() interface
 		 * @param  string   $key     [description]
 		 * @param  callable $handler [description]
 		 * @return [type]            [description]
 		 */
+		/**-------------------------------------------------------------------------*/
 	    function app(string $key="", callable $handler=NULL){
+	    	
 	    	// Check for parameter zero parameters
 	    	if(empty(trim($key)) && is_null($handler)){
 	    		// Return entire Service Container object

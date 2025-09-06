@@ -14,21 +14,22 @@ Includes `app()` global helper function.
 - 
 
 **Attributes**
-- [ ] Helper Function `app()` injects and returns instances from Service Container
-- [ ] Can distinguish between *Singleton* and *Regular* instances
-  - [ ] When registering `app()->singleton(SomeClass::class...)`
-  - [ ] When returning `return $this->singletons[key]`
-- [ ] General Purpose Dependency Injection Container
+- [x] Helper Function `app()` injects and returns instances from Service Container
+- [x] Can distinguish between *Singleton* and *Regular* instances
+  - [x] When registering `app()->singleton(SomeClass::class...)`
+  - [x] When returning `return $this->singletons[key]`
+- [x] General Purpose Dependency Injection Container
 
 **Methods**
-- [ ] `$this->bind()`
+- [x] `$this->bind()`
   - *Write* Operation
   - Registers the Service
-  - [ ] Binds a single dependency or service onto the container
-  - [ ] Binds a *Recipe* with a larger service onto the container
-  - [ ] Properties
-    - [ ] Classname::class
-    - [ ] Closure / Handler / Callable / Recipe
+  - [x] Binds a single dependency or service onto the container
+  - [x] Binds a *Recipe* with a larger service onto the container
+  - [x] Make ServiceContainer available as parameter to bind() $handler
+  - [x] Properties
+    - [x] Classname::class
+    - [x] Closure / Handler / Callable / Recipe
     ```php
     $this->app->bind(UserService::class, function($app){
         return new UserService(
@@ -38,24 +39,22 @@ Includes `app()` global helper function.
         )
     })
     ```
-- [ ] `$this->make()`
+- [x] `$this->make()`
   - *Read* Operation
   - Resolves the Service as Runtime when a service or dependency is needed
-  - [ ] Create (again if not a singleton) and get instance from container
-  - [ ] Lifecycle
-    - [ ] Find the *recipe* (closure)
-      - [ ] Executes closure (creates object, executes handler)
-      - [ ] Returns new instance or handler result
+  - [x] Create (again if not a singleton) and get instance from container
+  - Lifecycle
+    - [x] Find the *recipe* (closure)
+      - [x] Executes closure (creates object, executes handler)
+      - [x] Returns new instance or handler result
     - [ ] Can't find binding (closure)
       - [ ] Creates the object automatically using *Reflection*
       - [ ] Finds and returns
 
-#### 2.1.2 Lifecycle of ServiceContainer
-
 **Binding and Returning Service Instances via `app()`:**
-- [ ] Make and Resolve an instance; passing argument `$className = app(ClassName::class)`
-- [ ] Return ServiceContainer; no argument: `$container = app()`
-  - [ ] Explicitly bind methods / dependencies directly: `$container->bind('SomeKey', handler)`
+- [x] Make and Resolve an instance; passing argument `$className = app(ClassName::class)`
+- [x] Return ServiceContainer; no argument: `$container = app()`
+  - [x] Explicitly bind methods / dependencies directly: `$container->bind('SomeKey', handler)`
 
 **Automatic Binding of Dependencies**
 - [ ] Binding via type-hints; e.g. `__construct(SomeClass $instance)` populates $instance with `SomeClass` from ServiceContainer
@@ -85,6 +84,19 @@ Includes `app()` global helper function.
   - [ ] `SomeRegisteredService->boot()`
   - [ ] Dont after *ALL* Services have been registered - (at runtime?)
 - [ ] 
+
+---
+
+### 2.2 ReflectionCache
+
+Reflection Cache is a property of the service container that resolves un-explicitly-bound object instances
+
+**Use Cases**
+- [ ] Auto-wiring unbound class instances
+- [ ] Stores these instances in static cache array
+- [ ] Uses Reflection API to resolve unknown / unbound classes
+- [x] Validates $key strings from ServiceContainer->resolve() as class within scope
+- [ ] Only contains class instances!
 
 ---
 
