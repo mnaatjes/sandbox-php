@@ -92,11 +92,11 @@ Includes `app()` global helper function.
 Reflection Cache is a property of the service container that resolves un-explicitly-bound object instances
 
 **Use Cases**
-- [ ] Auto-wiring unbound class instances
-- [ ] Stores these instances in static cache array $resolutions
-- [ ] Uses Reflection API to resolve unknown / unbound classes
+- [x] Auto-wiring unbound class instances
+- [x] Stores these instances in static cache array $resolutions
+- [x] Uses Reflection API to resolve unknown / unbound classes
 - [x] Validates $key strings from ServiceContainer->resolve() as class within scope
-- [ ] Only contains class instances!
+- [x] Only contains class instances!
 
 **Resolution Lifecycle**
 1. [x] Validate
@@ -118,6 +118,14 @@ Reflection Cache is a property of the service container that resolves un-explici
 
 ### 2.2 Views
 
+**`src/View` Directory**
+- [ ] Stores constituent components of ViewFactory
+  - [ ] ViewFactory - 
+  - [ ] View - represents a single view file as an object
+  - [ ] FileViewFinder - locates actual view file from filepath or name
+  - [ ] ViewServiceProvider - registers all view system components with the ServiceContainer
+  - [ ] ViewService
+
 ---
 
 ### 2.2.1 View Fascade
@@ -130,7 +138,10 @@ Reflection Cache is a property of the service container that resolves un-explici
 
 **Attributes**
 - [ ] Returns an object for every *View* generated
-- [ ] Singleton
+- [ ] Singleton?
+- [ ] Contacted via `View` fascade
+- [ ] Contacter via `view()` helper function
+- [ ] Stored in ServiceContainer
 
 **Properties**
 - [ ] internal array `$shared`
@@ -138,6 +149,10 @@ Reflection Cache is a property of the service container that resolves un-explici
 ---
 
 ### 2.2.3 View Helper Function
+
+**Use Cases**
+- [ ] Global and defined in composer.json under `"files"` array
+- [ ] 
 
 ---
 
