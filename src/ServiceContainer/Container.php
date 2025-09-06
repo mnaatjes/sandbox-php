@@ -33,6 +33,12 @@
 		 */
 		protected array $shared=[];
 
+		/**
+		 * Tracks number of instances created per item
+		 * @var array
+		 */
+		private array $instanceCounts=[];
+
 		/**-------------------------------------------------------------------------*/
 		private function __construct(){
 			// Instantiate ReflectionCache
@@ -101,16 +107,18 @@
 		 */
 		/**-------------------------------------------------------------------------*/
 		public function resolve(string $key){
-			// Check for array key
+
+			// Check for key in Bindings array
 			if(!array_key_exists($key, $this->bindings)){
-				// Attempt to register
-				$this->cache->register($key);
 				
-				// double check $key available in cache
-				
-				// Return instance from ReflectionCache
-					// On failure: trigger exception! 
-				return;
+				// Check if already registered in ReflectionCache
+				if(!$this->cache->has($key)){
+					// Register with ReflectionCache
+					$this->cache->register($key);
+				}
+
+				// Return ReflectionCache Instance
+				return $this->cache->getInstance($key);
 			}
 
 			// First: Check if array key exists in $shared and its state
@@ -147,10 +155,12 @@
 
 		/**-------------------------------------------------------------------------*/
 		/**
-		 * Prints Shared and Bindings Array
+		 * Prints array of shared and bindings array
+		 *
+		 * @return void
 		 */
 		/**-------------------------------------------------------------------------*/
-		public function debug(){
+		public function debug(): void{
 			printf('%s', json_encode([
 				"shared" => $this->shared,
 				"bindings" => $this->bindings
@@ -158,7 +168,69 @@
 		}
 
 		/**-------------------------------------------------------------------------*/
+		/**
+		 * Prints array of ReflectionCache instances array
+		 *
+		 * @return void
+		 */
+		/**-------------------------------------------------------------------------*/
+		public function debugCache(): void{
+			printf('%s', json_encode([
+				$this->cache->getInstances(),
+			], JSON_PRETTY_PRINT));
+		}
 
+		/**-------------------------------------------------------------------------*/
+		/**
+		 * Checks if key exists in binding
+		 *
+		 * @param string $key
+		 * @return boolean
+		 */
+		/**-------------------------------------------------------------------------*/
+		public function hasBinding(string $key): bool{
+			return array_key_exists($key, $this->bindings);
+		}
+
+		/**-------------------------------------------------------------------------*/
+		/**
+		 * Checks if key exists in singleton array
+		 *
+		 * @param string $key
+		 * @return boolean
+		 */
+		/**-------------------------------------------------------------------------*/
+		public function hasSingleton(string $key): bool{
+			return array_key_exists($key, $this->shared);
+		}
+
+		/**-------------------------------------------------------------------------*/
+		/**
+		 * Looks for ReflectionCache key bound to instances array
+		 *
+		 * @param string $key
+		 * @return boolean
+		 */
+		/**-------------------------------------------------------------------------*/
+		public function hasCachedInstance(string $key): bool{
+			return $this->cache->has($key);
+		}
+
+		/**-------------------------------------------------------------------------*/
+		/**-------------------------------------------------------------------------*/
+		public function isSingleton(string $key): bool{
+			return $this->hasSingleton($key);
+		}
+
+		/**-------------------------------------------------------------------------*/
+		/**-------------------------------------------------------------------------*/
+		public function instanceCreated(string $key){}
+
+		/**-------------------------------------------------------------------------*/
+		/**-------------------------------------------------------------------------*/
+		public function instanceCount(string $key){}
+		
+		/**-------------------------------------------------------------------------*/
 		/**-------------------------------------------------------------------------*/
 		/**
 		 * Possible Features:

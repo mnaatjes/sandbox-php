@@ -5,7 +5,7 @@
 	class Vacuum {
 
 		private static array $bag=[];
-		public function __construct(...$args){
+		public function __construct(string ...$args){
 			static::$bag = array_merge(static::$bag, $args);
 		}
 		public function dumpOut(){

@@ -57,26 +57,26 @@ Includes `app()` global helper function.
   - [x] Explicitly bind methods / dependencies directly: `$container->bind('SomeKey', handler)`
 
 **Automatic Binding of Dependencies**
-- [ ] Binding via type-hints; e.g. `__construct(SomeClass $instance)` populates $instance with `SomeClass` from ServiceContainer
-- [ ] Workflow:
-  - [ ] **Container asked to make an instance of `DependantClass`**
-    - [ ] Container cannot find binding for `DependantClass`
-    - [ ] As container binds new `DependantClass` it also fulfills auto-wiring process
-  - [ ] **Container employs `ReflectionClass(DependantClass::class)`**
-    - [ ] Checks if `DependantClass` has a constructor
-      - [ ] No `__construct()` means no dependency
-      - [ ] Has `__construct()`
-        - [ ] Get Constructor
-        - [ ] Get Constructor parameters
-      - [ ] **Resolve each parameter**
-        - [ ] Iterate through $parameters array
-        - [ ] Use `$parameter->getType()` to find type-hint: e.g. `SomeClass`
-        - [ ] Container calls itself internally with type-hint: `$someDependency = app(SomeClass::class)`
-        - [ ] Container binds SomeClass if not already bound
-        - [ ] Container returns SomeClass instance
-    - [ ] **Instantiate the Original Class** `DependencyClass`
-      - [ ] Container now has a resolved instance of every parameter of `DependencyClass` with its dependencies
-      - [ ] Return the Final Instance
+- [x] Binding via type-hints; e.g. `__construct(SomeClass $instance)` populates $instance with `SomeClass` from ServiceContainer
+- **Lifecycle:**
+  - [x] **Container asked to make an instance of `DependantClass`**
+    - [x] Container cannot find binding for `DependantClass`
+    - [x] As container binds new `DependantClass` it also fulfills auto-wiring process
+  - [x] **Container employs `ReflectionClass(DependantClass::class)`**
+    - [x] Checks if `DependantClass` has a constructor
+      - [x] No `__construct()` means no dependency
+      - [x] Has `__construct()`
+        - [x] Get Constructor
+        - [x] Get Constructor parameters
+      - [x] **Resolve each parameter**
+        - [x] Iterate through $parameters array
+        - [x] Use `$parameter->getType()` to find type-hint: e.g. `SomeClass`
+        - [x] Cache calls `register()` itself internally with type-hint: `$someDependency = app(SomeClass::class)`
+        - [x] Cache binds SomeClass if not already bound
+        - [x] Cache returns SomeClass instance
+    - [x] **Instantiate the Original Class** `DependencyClass`
+      - [x] Cache now has a resolved instance of every parameter of `DependencyClass` with its dependencies
+      - [x] Return the Final Instance
 
 **Register Boot Methods of ServiceProviders**
 - [ ] Service Registered with `ServiceProvider->register()` method
@@ -93,10 +93,26 @@ Reflection Cache is a property of the service container that resolves un-explici
 
 **Use Cases**
 - [ ] Auto-wiring unbound class instances
-- [ ] Stores these instances in static cache array
+- [ ] Stores these instances in static cache array $resolutions
 - [ ] Uses Reflection API to resolve unknown / unbound classes
 - [x] Validates $key strings from ServiceContainer->resolve() as class within scope
 - [ ] Only contains class instances!
+
+**Resolution Lifecycle**
+1. [x] Validate
+2. [x] Make Reflection
+3. [x] Access Construct
+   1. [x] No construct -> skip to 7
+4. [x] Get Parameters
+5. [x] Check type of parameters
+6. [x] Check if parameters are objects and valid:
+      1. [ ] OPTION: If non-object; check ENV variables for key=>value
+   1. [x] Resolve recursively
+   2. [x] Append to resolvedObjects array
+   3. [x] Inject as dependencies
+7. [x] Append to resolved Objects Array
+8. [x] Inject as dependencies
+9. [x] Return configured instance
 
 ---
 

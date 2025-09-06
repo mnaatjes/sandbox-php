@@ -26,6 +26,9 @@
     "autoload-dev": {
         "psr-4": {
             "MVCFrame\\Tests\\": "tests/"
-        }
+        },
+        "files": [
+            "tests/Constants.php"
+        ]
     }
 }

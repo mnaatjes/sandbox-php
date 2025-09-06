@@ -3,7 +3,6 @@
     // Include autoloader
     require_once(__DIR__ . '/../vendor/autoload.php');
 
-
     //use MVCFrame\Tests\Classes\TestApplication;
     use MVCFrame\Tests\Cars\Toyota;
     use MVCFrame\Tests\Cars\Volvo;
@@ -14,6 +13,9 @@
     use MVCFrame\Tests\Classes\InstanceCounter;
     use MVCFrame\Tests\Classes\Singleton;
     use MVCFrame\Tests\Classes\Vacuum;
+    use MVCFrame\Tests\Classes\MagicEightball;
+    use MVCFrame\Tests\Classes\FailSon;
+    use MVCFrame\Tests\Turducken\Turkey;
 
     // Debugging
     //$app = new TestApplication();
@@ -71,9 +73,10 @@
         //$instance->countOff();
     }
 
-    $hoover     = new Vacuum("wool", "bags", "kitty litter");
-    $bisel      = new Vacuum("poop", "hair", "food");
+    //$hoover     = new Vacuum("wool", "bags", "kitty litter");
+    //$bisel      = new Vacuum("poop", "hair", "food");
 
+    /*
     app(Vacuum::class, function($app){
         return new Vacuum(
             $app->resolve(InstanceCounter::class),
@@ -81,8 +84,23 @@
             $app->resolve(ConcretePizza::class)
         );
     });
+    */
 
     //var_dump(app(Vacuum::class)->emptyBag());
 
-    app(\MVCFrame\Tests\Classes\TestApplication::class);
+    //app(\MVCFrame\Tests\Classes\SovietCarWash::class);
+    //app(\MVCFrame\Tests\Classes\Vacuum::class);
+    //app(\MVCFrame\Tests\Classes\MagicEightball::class);
+    //app(\MVCFrame\Tests\Cars\Lada::class);
+    //app(\MVCFrame\Tests\Classes\FailSon::class);
+    /*
+    $turkey = app(Turkey::class);
+    $turkey->yesChef();
+    $turkey->duck->chicken->vocalize();
+    $turkey->duck->chicken->getTemp();
+    */
+    //app()->debugCache();
+
+    
+    //app(String::class);
 ?>
