@@ -10,7 +10,9 @@
     use MVCFrame\Tests\CarFactory;
     use MVCFrame\Tests\Classes\Pizza as ConcretePizza;
     use MVCFrame\Tests\Fascades\Pizza;
-    use MVCFrame\Tests\Classes\ServiceContainer;
+    use MVCFrame\ServiceContainer\Container;
+    use MVCFrame\Tests\Classes\InstanceCounter;
+    use MVCFrame\Tests\Classes\Singleton;
 
     // Debugging
     //$app = new TestApplication();
@@ -37,8 +39,34 @@
     //dealership(["99", "98", "97"]);
     
 
-    ServiceContainer::getInstance()->bind(ConcretePizza::class, function(){return new ConcretePizza();});
+    //Container::getInstance()->bind(ConcretePizza::class, function(){return new ConcretePizza();});
 
-    Pizza::withCheese();
-    Pizza::bake();
+    //Pizza::withCheese();
+    //Pizza::bake();
+    
+    // Instance Debugging
+    //app(InstanceCounter::class, function(){return new InstanceCounter();});
+
+    app()->singleton(InstanceCounter::class, function(){return new InstanceCounter();});
+    app()->singleton(Singleton::class, function(){return Singleton::getInstance();});
+
+    $instances = [
+        app(InstanceCounter::class),
+        app(InstanceCounter::class),
+        app(InstanceCounter::class),
+        app(InstanceCounter::class),
+        app(InstanceCounter::class),
+        app(InstanceCounter::class),
+        app(InstanceCounter::class),
+        app(InstanceCounter::class),
+        app(Singleton::class),
+        app(Singleton::class),
+        app(Singleton::class),
+        app(Singleton::class),
+        app(Singleton::class),
+    ];
+
+    foreach($instances as $instance){
+        $instance->countOff();
+    }
 ?>
