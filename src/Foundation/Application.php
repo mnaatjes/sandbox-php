@@ -2,13 +2,15 @@
 
 	namespace MVCFrame\Foundation;
 	use MVCFrame\ServiceContainer\Container;
+	use MVCFrame\FileSystem\Path;
+	use MVCFrame\FileSystem\PathRegistry;
 
 	class Application extends Container {
 
 		/** @var integer Instance Count to prevent more than one instance */
 		private static int $instanceCount=0;
 
-		private ?string $rootDir;
+		private ?PathRegistry $pathRegistry;
 
 		/**-------------------------------------------------------------------------*/
 		/**-------------------------------------------------------------------------*/
@@ -34,20 +36,26 @@
 		/**-------------------------------------------------------------------------*/
 		/**-------------------------------------------------------------------------*/
 		private function configureApplication(string $root_directory){
+			// Create rootDir path instance
 			// Validate and Assign Root Directory
-			if(!is_dir($root_directory)){
+			$rootDir = Path::create($root_directory);
+			if(!$rootDir->exists()){
 				// Directory does not exist
 				throw new \Exception("Root Directory ".$root_directory." DOES NOT exist!");
 			}
 
-			// Assign Root Directory
-			$this->rootDir = $root_directory;
+			// Determine Environment of Framework
+			// TODO: Use env loading
+			$env = $rootDir->getBasename() === "tests" ? "dev" : "production";
+
+			// Instantiate Path Registry
+			$this->pathRegistry = new PathRegistry($rootDir, $env);
+
+
 
 			// Verify Environment:
 			// Determine Basename
 			// Attempt to load .env
-			$baseDir = basename($this->rootDir);
-			var_dump("Basename: ".$baseDir);
 		}
 
 		/**-------------------------------------------------------------------------*/

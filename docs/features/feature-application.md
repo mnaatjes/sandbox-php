@@ -6,13 +6,13 @@ This is the Core of the MVC Framework
 
 **Path and URL Management**
 
-- [ ] **basePath:** The root directory of your Laravel project.
-- [ ] **appPath:** The path to the app directory.
-- [ ] **configPath:** The path to the config directory.
-- [ ] **databasePath:** The path to the database directory.
-- [ ] **publicPath:** The path to the public directory.
-- [ ] **storagePath:** The path to the storage directory.
-- [ ] **resourcePath:** The path to the resources directory.
+- [x] **rootDir:** The root directory of your Laravel project.
+- [x] **appPath:** The path to the app directory.
+- [x] **configPath:** The path to the config directory.
+- [x] **databasePath:** The path to the database directory.
+- [x] **publicPath:** The path to the public directory.
+- [x] **storagePath:** The path to the storage directory.
+- [x] **resourcePath:** The path to the resources directory.
 
 **Service and Container State**
 - [ ] **serviceProviders:** An array of all the service provider instances that have been registered.
