@@ -40,11 +40,9 @@
 		private array $instanceCounts=[];
 
 		/**-------------------------------------------------------------------------*/
-		private function __construct(){
+		protected function __construct(){
 			// Instantiate ReflectionCache
 			$this->cache = new ReflectionCache();
-
-			// TODO: Register all ServiceProviders
 		}
 		/**-------------------------------------------------------------------------*/
 		/**

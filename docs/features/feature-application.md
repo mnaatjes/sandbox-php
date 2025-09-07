@@ -116,7 +116,9 @@ Potential, Optional, and Definite Features to be added
 
 ---
 
-# Appendix B: Directory Structure
+# Appendix B: Directory Structures
+
+## B.1 User Application Environment
 
 ```
 my-mvcframe-project/
@@ -165,4 +167,40 @@ my-mvcframe-project/
 │       └── 📄 README.md
 ├── 📄 composer.json
 └── 📄 package.json
+
+```
+
+
+## B.2 Testing Directory Environment
+```
+.
+│
+├── 📁 docs/
+├── 📁 src/
+│
+├── 📁 tests/
+│   ├── 📁 bootstrap/
+│   │   ├── 📁 stuff/
+│   │   ├── 📄 .env      Testing Environmental Variables
+│   │   └── 📄 app.php   Application Instance
+│   │
+│   ├── 📁 Services/
+│   ├── 📁 Models/
+│   ├── 📁 Repositories/
+│   ├── 📁 Controllers/
+│   ├── 📁 Routes/
+│   ├── 📁 Config/
+│   │
+│   ├── 📁 Cars/
+│   ├── 📁 Classes/
+│   ├── 📁 Interfaces/
+│   ├── 📁 Fascades/
+│   ├── 📁 Turducken/
+│   ├── 📄 CarFactory.php
+│   ├── 📄 Constants.php
+│   └── 📄 main.php      Application Entry Point and Testing-ground
+│
+├── 📄 composer.json/
+└── 📄 README.md
+
 ```

@@ -308,9 +308,23 @@ Reflection Cache is a property of the service container that resolves un-explici
 
 ### 2.5 Http Components
 
+**Overview**
+- [ ] Http Core
+- [ ] Http Interface
+- [ ] Http ObjectFactory
+  - [ ] Http Request Parent Object
+    - [ ] GET Request
+    - [ ] POST Request
+    - [ ] PULL Request
+    - [ ] DELETE Request
+  - [ ] Http Response Parent Object
+    - [ ] JSON Response
+    - [ ] File Response
+    - [ ] HTML Response
+
 ---
 
-#### 2.5.1 Http Kernel
+#### 2.5.1 Http Core
 
 **Use Cases**
 - [ ] Orchestrate the process of converting an Http Request into a Response
@@ -334,8 +348,34 @@ Reflection Cache is a property of the service container that resolves un-explici
 
 ---
 
-#### 2.5.2 Http Request Object
+#### 2.5.2 Http Interface
 
 ---
 
-#### 2.5.2 Http Response Objects
+#### 2.5.3 Http Object Factory
+
+---
+
+#### 2.5.4 Http Request Objects
+
+##### 2.5.4.1 Parent
+
+##### 2.5.4.2 GET Request
+
+##### 2.5.4.3 POST Request
+
+##### 2.5.4.4 PULL Request
+
+##### 2.5.4.5 DELETE Request
+
+---
+
+#### 2.5.5 Http Response Objects
+
+##### 2.5.5.1 Parent
+
+##### 2.5.5.2 JSON Response
+
+##### 2.5.5.3 HTML Response
+
+##### 2.5.5.4 File Response
