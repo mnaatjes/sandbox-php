@@ -52,7 +52,6 @@ This is the Core of the MVC Framework
   - [ ] Instantiates Classes necessary for configuration
     - [ ] DotEnv
     - [ ] Utility
-    - [ ] 
 ---
 
 ### 3.0 Lifecycle

@@ -1,9 +1,7 @@
 <?php
 
 	namespace MVCFrame\FileSystem;
-
-use Exception;
-use MVCFrame\Foundation\Utility;
+	use MVCFrame\Foundation\Utility;
 
 	class PathRegistry {
 
@@ -118,7 +116,6 @@ use MVCFrame\Foundation\Utility;
 				// Path does not exist!
 				throw new \Exception(printf('Path: %s does NOT exist!', (string)$path));
 			}
-
 			// Add to Registry
 			$this->add($alias, $path);
 		}
@@ -234,6 +231,7 @@ use MVCFrame\Foundation\Utility;
 			// Return Results
 			return $results;
 		}
+
 		/**-------------------------------------------------------------------------*/
 		/**-------------------------------------------------------------------------*/
 		private function format(){}
@@ -258,39 +256,16 @@ use MVCFrame\Foundation\Utility;
 		 */
 		/**-------------------------------------------------------------------------*/
 		public function hasAlias(string $alias): bool{
-			// Explode alias
 			$keys = explode(".", $alias);
+			$currentLevel = $this->registry;
 
-			// Reference Registry
-			$temp = &$this->registry;
-
-			// Check: Set Flag
-			$flag = false;
-
-			// Double-check: Assemble reference string
-			$ref = "";
-
-			// Loop and assemble
-			foreach($keys as $key){
-				//var_dump($key);
-				if(array_key_exists($key, $temp)){
-					// Group Key Found
-					// Add group or name
-					$ref .= empty(trim($ref)) ? $key : "." . $key;
-
-					// Reference deeper
-					$temp = &$temp[$key];
-
-					// Validate
-					if($ref === $alias){
-						// Alias found
-						$flag = true;
-					}
+			foreach ($keys as $key) {
+				if (!is_array($currentLevel) || !array_key_exists($key, $currentLevel)) {
+					return false;
 				}
-				// Group Key Not found
+				$currentLevel = $currentLevel[$key];
 			}
-			// Return Flag
-			return $flag;
+			return true;
 		}
 		public function aliasExists(string $alias): bool{return $this->hasAlias($alias);}
 
@@ -300,15 +275,38 @@ use MVCFrame\Foundation\Utility;
 			return is_array($this->registry[$group]);
 		}
 		public function groupExists(string $group){ return $this->groupExists($group);}
+
 		/**-------------------------------------------------------------------------*/
 		/**-------------------------------------------------------------------------*/
 		public function hasPath(string|Path $path){
-			//return $this->aliasExists($alias) && is_a($this->registry[$alias], Path::class);
+			// Check type
+			if(is_a($path, Path::class)){
+				$path = (string)$path;
+			}
+
+			// Loop iterator
+			$temp = &$this->registry;
+			foreach($temp as $key => $value){
+				
+			}
+			// Return in array bool
+			throw new \Exception("Function not Finished");
 		}
 
 		/**-------------------------------------------------------------------------*/
 		/**-------------------------------------------------------------------------*/
-		public function getGroup(string $group){}
+		public function getGroup(string $group){
+			// TODO: Change to work with depth
+			// Return array from group
+			if($this->hasGroup($group)){
+				return $this->registry[$group];
+			} else {
+				// Group does not exist
+				// Throw Exception
+				throw new \Exception("Group: " .$group. "does not exist!");
+			}
+
+		}
 
 		/**-------------------------------------------------------------------------*/
 		/**-------------------------------------------------------------------------*/
