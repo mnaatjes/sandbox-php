@@ -85,10 +85,6 @@
 			path("base", "config.env", Path::join(path("base.config"), path("/.env")));
 			
 			$this->envManager = new DotEnv();
-			$this->envManager->showAll();
-			// Verify Environment:
-			// Determine Basename
-			// Attempt to load .env
 		}
 
 		/**-------------------------------------------------------------------------*/

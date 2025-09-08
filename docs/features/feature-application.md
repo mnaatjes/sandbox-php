@@ -57,25 +57,25 @@ This is the Core of the MVC Framework
 ### 3.0 Lifecycle
 
 #### 3.1 Application Instantiation and Root Directory Path Definition
-- [ ] User defines **Bootstrap** directory in root: `~/bootstrap/`
-- [ ] User instantiates **Application** instance and passes `dirname(__DIR__)` in: `~/bootstrap/app.php`
+- [x] User defines **Bootstrap** directory in root: `~/bootstrap/`
+- [x] User instantiates **Application** instance and passes `dirname(__DIR__)` in: `~/bootstrap/app.php`
   ```php
   $app = new MVCFramework\Foundation\Application(
     dirname(__DIR__) // Ponts to parent directory of /bootstrap which must be the root directory
   );
   ```
   - [ ] To override a path: `$app->usePathnamePath("/path/to/dir);`
-- [ ] Application configures filepaths based on **Convention** and the **root path** from `dirname(__DIR__)`
-  - [ ] Validate filepaths
-  - [ ] Validate directories exist
+- [x] Application configures filepaths based on **Convention** and the **root path** from `dirname(__DIR__)`
+  - [x] Validate filepaths
+  - [x] Validate directories exist
     - [ ] Check if different paths defined with `$app->useFP...` methods
 
 #### 3.2 Instantiate Classes Necessary for Configuration
-- [ ] Create DotEnv and Utility Class Instances
-- [ ] Load ENV File and populate ENV Variables
-  - [ ] Validate Necessary Variables only
-  - [ ] Populate Necessary Variables only
-  - [ ] Share Necessary Variables only
+- [x] Create DotEnv and Utility Class Instances
+- [x] Load ENV File and populate ENV Variables
+  - [x] Validate Necessary Variables only
+  - [x] Populate Necessary Variables only
+  - [x] Share Necessary Variables only
 - [ ] 
 
 
