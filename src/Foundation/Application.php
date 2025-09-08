@@ -17,6 +17,11 @@
 		private ?DotEnv $envManager;
 
 		/**-------------------------------------------------------------------------*/
+		/**
+		 * Application Constructor
+		 *
+		 * @param string $root_directory
+		 */
 		/**-------------------------------------------------------------------------*/
 		public function __construct(string $root_directory){
 			// Check instance count and limit to 1
@@ -36,7 +41,7 @@
 			// Execute Parent Constructor
 			// Enables ReflectionCache
 			parent::__construct();
-			
+			var_dump($this->cache);
 		}
 
 		/**-------------------------------------------------------------------------*/

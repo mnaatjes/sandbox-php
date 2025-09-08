@@ -17,7 +17,7 @@
 		 */
 		private static ?Container $instance=NULL;
 
-		private ?ReflectionCache $cache;
+		protected ?ReflectionCache $cache;
 
 		/** 
 		 * Stores Services and Dependenies in key=>value pairs
@@ -35,9 +35,10 @@
 
 		/**
 		 * Tracks number of instances created per item
+		 * Note Implemented yet
 		 * @var array
 		 */
-		private array $instanceCounts=[];
+		//private array $instanceCounts=[];
 
 		/**-------------------------------------------------------------------------*/
 		protected function __construct(){

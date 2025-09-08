@@ -56,6 +56,47 @@ This is the Core of the MVC Framework
 
 ### 3.0 Lifecycle
 
+#### 3.0.1 Overview of Laravel Lifecycle
+
+1. Request Entry Point `public/index.php`
+2. Load `bootstrap/app.php`
+3. Create *Application* Instance
+4. *Http Kernel* Takes over and processes incoming http request
+   1. RegisterProviders called by HttpKernel inside *handle()* method which handles http requests
+   2. Contains property $bootstrappers array
+5. *Bootstrappers* run including *RegisterProviders* class
+   1. Runs *register()* methods of all providers first
+   2. Runs *boot()* methods of all providers second
+      1. Includes *RegisterFascades* register() and boot() methods
+6. 
+
+---
+
+#### 3.0.2 Actual Lifecycle of MVC Framework: Overview
+
+
+#### 3.0.3 Actual Lifecycle of MVC Framework: Granular
+1. Request Entry Point `public/index.php`
+2. Load `bootstrap/app.php`
+3. Create *Application* Instance `$app = new Application(dirname(__DIR__))`
+   1. `__construct()` 
+      1. Validate Instance Count
+      2. Property startTime set with `microtime`
+      3. `$this->configureApplication()`
+         1. Define and Validate *Project Root Directory*
+         2. Determine Environment of MVCFramework
+         3. Instantiate *PathRegistry*
+            1. Register Required User Paths with PathRegistry
+            2. Register Configuration Paths with PathRegistry
+         4. Instantiate *DotEnv* and load environment variables
+         5. Instantiate *FascadeManager*
+         6. Instantiate *HttpCore*
+      4. Parent *Container* `parent::__construct()`
+         1. Creates Container instance
+         2. Creates ReflectionCache instance
+4. Runtime:
+   1. Http Request Made
+
 #### 3.1 Application Instantiation and Root Directory Path Definition
 - [x] User defines **Bootstrap** directory in root: `~/bootstrap/`
 - [x] User instantiates **Application** instance and passes `dirname(__DIR__)` in: `~/bootstrap/app.php`
@@ -76,7 +117,8 @@ This is the Core of the MVC Framework
   - [x] Validate Necessary Variables only
   - [x] Populate Necessary Variables only
   - [x] Share Necessary Variables only
-- [ ] 
+
+#### 3.3 
 
 
 ## Appendix A: Features to be added
@@ -201,5 +243,256 @@ my-mvcframe-project/
 │
 ├── 📄 composer.json/
 └── 📄 README.md
+
+```
+# Appendix C: Organizational and Class Diagrams
+
+## C.1 Existing Framework
+
+### C.1.1 Class Diagram: Existing
+```mermaid
+classDiagram
+  direction TD
+
+  class Container {
+    <<Class>>
+    -instance self
+    #bindings array
+    #cache
+    #shared
+    +bind()
+    +bindShared()
+    +singleton()
+    +resolve()
+    +has()
+    +
+  }
+  note for Container "Central DI Container"
+
+  class ReflectionCache{
+    <<Service>>
+    -resolvedInstances
+    +register()
+    +getInstance()
+    +has()
+    +getInstances()
+
+  }
+  
+  class Application {
+
+  }
+
+  Container <|-- Application : Inheritance (is a)
+  Container *-- ReflectionCache : Composition (has a)
+
+```
+## C.2 Restructured Framework
+
+### C.2.1 Organizational Chart: Restructure
+
+```mermaid
+graph TD;
+  %% Define Nodes (Positions)
+  A[Application]
+
+  A.B[Managers]
+  
+  A.B.A[Container Manager]
+  A.B.A.A[Shared Container]
+  A.B.A.B[Transient Container]
+  A.B.A.C[Cache Container]
+  A.B.A.D[Service Container]
+
+  A.B.B[Service Manager]
+  A.B.B.A[Providers]
+  A.B.B.A.A[Service]
+  A.B.B.A.B[Service]
+  A.B.B.A.C[Service]
+  A.B.B.A.D[Service]
+  A.B.B.A.E[Service]
+  A.B.B.B[Registry]
+
+  A.B.C[FileSystem Manager]
+  A.B.D[StaticProxy Manager]
+
+  %% Connect Nodes (Heirarchy)
+  A --> A.B;
+
+  A.B --> A.B.A
+  A.B --> A.B.B
+  A.B --> A.B.C
+  A.B --> A.B.D
+
+  A.B.A --> A.B.A.A
+  A.B.A --> A.B.A.B
+  A.B.A --> A.B.A.C
+  A.B.A --> A.B.A.D
+
+  A.B.B --> A.B.B.A
+  A.B.B.A --> A.B.B.A.A
+  A.B.B.A --> A.B.B.A.B
+  A.B.B.A --> A.B.B.A.C
+  A.B.B.A --> A.B.B.A.D
+  A.B.B.A --> A.B.B.A.E
+  A.B.B --> A.B.B.B
+```
+
+### C.2.2 Class Diagrams: Restructure
+
+#### C.2.2.1 Container Interface to Container
+
+```mermaid
+classDiagram
+  direction TD
+  class ContainerInterface {
+    <<Interface>>
+    +bind()
+    +resolve()
+    +has()
+    -boot()
+    -register()
+  }
+  class AbstractContainer {
+    <<Abstract>>
+    -instance self
+    #registry array
+    #bindings array
+    #shared array
+    #cacheEnabled bool
+    #isSingleton bool
+    +getinstance()
+    +bind()
+    +resolve()
+    +has()
+  }
+
+  class ServiceContainer {
+    -boot()
+    -register()
+    #isSingleton true
+
+  }
+
+  class SharedContainer {
+    -boot()
+    -register()
+    #isSingleton true
+  }
+
+  class CacheContainer {
+    -boot()
+    -register()
+    #isSingleton true
+  }
+
+  class FactoryContainer {
+    -boot()
+    -register()
+    #isSingleton false
+  }
+
+  %% Relationship: Container IMPLEMENTS ContainerInterface
+  %% Relationship: Container EXTENDS AbstractContainer
+  ContainerInterface <|-- AbstractContainer
+  AbstractContainer <|-- ServiceContainer
+  AbstractContainer <|-- SharedContainer
+  AbstractContainer <|-- CacheContainer
+  AbstractContainer <|-- FactoryContainer
+
+```
+
+#### C.2.2.3 Manager Interface to Manager
+
+```mermaid
+classDiagram
+  direction TD
+  class ManagerInterface {
+    <<Interface>>
+    #boot()
+    #run()
+  }
+
+  class AbstractManager {
+    <<Abstract>>
+    #register()
+    #unregister()
+    #refresh()
+    #clear()
+    +list()
+    +has()
+    +add()
+    +get()
+  }
+
+  class ContainerManager {
+    <<Service>>
+    #registry array
+    -shared SharedContainer
+    -services ServiceContainer
+    -cache CacheContainer
+    -factory FactoryContainer
+  }
+
+  class FileSystemManager {
+    <<Service>>
+    #registry array
+  }
+
+  class StaticProxyManager {
+    <<Service>>
+    #registry array
+  }
+
+  class ServiceManager {
+    <<Service>>
+    #registry array
+  }
+
+  class HttpManager {
+    <<Service>>
+    #registry array
+  }
+
+  %% Relationship: AbstractManager IMPLEMENTS ManagerInterface
+  %% Relationship: *Manager EXTENDS AbstractManager
+  ManagerInterface <|-- AbstractManager
+  AbstractManager <|-- ContainerManager
+  AbstractManager <|-- FileSystemManager
+  AbstractManager <|-- StaticProxyManager
+  AbstractManager <|-- ServiceManager
+  AbstractManager <|-- HttpManager
+
+```
+#### C.2.3 Application Associations
+
+```mermaid
+classDiagram
+  direction TD
+
+  class Application {
+    <<Class>>
+    -ContainerManager
+    -ServicesManager
+    -FileSystem
+    -StaticProxyManager
+    -boot()
+    -run()
+  }
+
+  %% Relationship: Application OWNS ContainerManager
+  Application --> ContainerManager
+  Application --> FileSystemManager
+  Application --> ServiceManager
+  Application --> StaticProxyManager
+
+  %% Relationship: ContainerManager OWNS *Container
+  ContainerManager --* ServiceContainer
+  ContainerManager --* SharedContainer 
+  ContainerManager --* CacheContainer 
+  ContainerManager --* FactoryContainer 
+
+  %% Relationship: FileSystemManager OWNS 
+  
 
 ```
