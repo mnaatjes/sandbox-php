@@ -294,110 +294,158 @@ classDiagram
 ```mermaid
 graph TD;
   %% Define Nodes (Positions)
-  A[Application]
-
-  A.B[Managers]
+  App[Application]
   
-  A.B.A[Container Manager]
-  A.B.A.A[Shared Container]
-  A.B.A.B[Transient Container]
-  A.B.A.C[Cache Container]
-  A.B.A.D[Service Container]
+  App.Container[SerivceContainer]
+  App.Container.A[Shared]
+  App.Container.B[Closures]
+  App.Container.C[Cache]
 
-  A.B.B[Service Manager]
-  A.B.B.A[Providers]
-  A.B.B.A.A[Service]
-  A.B.B.A.B[Service]
-  A.B.B.A.C[Service]
-  A.B.B.A.D[Service]
-  A.B.B.A.E[Service]
-  A.B.B.B[Registry]
-
-  A.B.D[StaticProxy Manager]
+  App.Registry[Registry]
 
   %% Connect Nodes (Heirarchy)
-  A --> A.B;
+  App --> App.Container;
 
-  A.B --> A.B.A
-  A.B --> A.B.B
-  A.B --> A.B.C
-  A.B --> A.B.D
+  App.Container --> App.Container.A
+  App.Container --> App.Container.B
+  App.Container --> App.Container.C
 
-  A.B.A --> A.B.A.A
-  A.B.A --> A.B.A.B
-  A.B.A --> A.B.A.C
-  A.B.A --> A.B.A.D
+  App --> App.Registry
 
-  A.B.B --> A.B.B.A
-  A.B.B.A --> A.B.B.A.A
-  A.B.B.A --> A.B.B.A.B
-  A.B.B.A --> A.B.B.A.C
-  A.B.B.A --> A.B.B.A.D
-  A.B.B.A --> A.B.B.A.E
-  A.B.B --> A.B.B.B
 ```
 
 ### C.2.2 Class Diagrams: Restructure
 
-#### C.2.2.1 Container Interface to Container
+#### C.2.2.1 Application Structure
 
 ```mermaid
 classDiagram
   direction TD
-  class ContainerInterface {
+
+  class BindingInterface {
     <<Interface>>
-    +bind()
-    +resolve()
-    +has()
-    -boot()
-    -register()
+    #bind()
+    #resolve()
+    #has()
+    #remove()
+    #clear()
   }
-  class AbstractContainer {
+
+  class AbstractBinding {
     <<Abstract>>
-    -instance self
-    #registry array
-    #bindings array
-    #shared array
-    #cacheEnabled bool
-    #isSingleton bool
-    +getinstance()
-    +bind()
-    +resolve()
-    +has()
+    -config array
+    -bindings array
+    -isSingleton bool
+    -isCache bool
+    #resolve()
+    #has()
+    #remove()
+    #clear()
+  }
+
+  class CacheBindings {
+    <<Class>>
+    -config array
+    -bindings array
+    -isSingleton true
+    -isCache true
+    #bind()
+    -reflect()
+  }
+
+  class ClosureBindings {
+    <<Class>>
+    -config array
+    -bindings array
+    -isSingleton false
+    -isCache false
+    #bind()
+  }
+
+  class SharedBindings {
+    <<Class>>
+    -config array
+    -bindings array
+    -isSingleton true
+    -isCache false
+    #bind()
   }
 
   class ServiceContainer {
+    <<Service>>
+    -cache
+    -closures
+    -shared
     -boot()
     -register()
-    #isSingleton true
-
+    #bind()
+    #singleton()
+    #resolve()
+    -cache()
+    -inCache()
+    -inShared()
+    -inClosures()
   }
 
-  class SharedContainer {
-    -boot()
-    -register()
-    #isSingleton true
+  class Registry {
+    <<Class>>
+    -data
+    -dataTypes array
+    #has()
+    #get()
+    #set()
+    #clear()
+    #remove()
+    #all()
   }
 
-  class CacheContainer {
-    -boot()
-    -register()
-    #isSingleton true
+  class AbstractRegistry {
+    <<Abstract>>
+    -data
+    -dataTypes [...]
+    #has()
+    #get()
+    #set()
+    #clear()
+    #remove()
+    #all()
+    -makeAlias()
   }
 
-  class FactoryContainer {
-    -boot()
-    -register()
-    #isSingleton false
+  class Application {
+    <<Class>>
+    +getinstance()$
+    +bind()
+    +has()
+    +remove()
+    +clear()
+    +all()
+    +register()
+    +unregister()
   }
 
-  %% Relationship: Container IMPLEMENTS ContainerInterface
-  %% Relationship: Container EXTENDS AbstractContainer
-  ContainerInterface <|-- AbstractContainer
-  AbstractContainer <|-- ServiceContainer
-  AbstractContainer <|-- SharedContainer
-  AbstractContainer <|-- CacheContainer
-  AbstractContainer <|-- FactoryContainer
+  %% Abstract IMPLEMENTS Interface
+  AbstractBinding <|-- BindingInterface: implements
+
+  %% Concrete Container EXTENDS AbstractContainer
+  CacheBindings <|-- AbstractBinding: extends
+  ClosureBindings <|-- AbstractBinding: extends
+  SharedBindings <|-- AbstractBinding: extends
+
+  %% Container Manager CONTAINS Containers
+  ServiceContainer o-- CacheBindings: has
+  ServiceContainer o-- ClosureBindings: has
+  ServiceContainer o-- SharedBindings: has
+
+  %% Application Extends ServiceContainer
+  Application <|-- ServiceContainer: extends
+
+  %% Application Has Registry
+  Application "1"o--"1" Registry: has
+
+  %% Registry Extends AbstractRegistry
+  Registry <|-- AbstractRegistry: extends
+
 
 ```
 
@@ -425,33 +473,23 @@ classDiagram
     +create()
   }
 
-  class ContainerManager {
-    <<Service>>
-    #registry object
-    -shared SharedContainer
-    -services ServiceContainer
-    -cache CacheContainer
-    -factory FactoryContainer
-  }
-
   class FascadeManager {
     <<Service>>
-    #registry object
-    #container object
+    -app: Application
   }
 
   class ServiceManager {
     <<Service>>
-    #registry object
-    #container object
+    -app: Application
   }
 
   class HttpManager {
     <<Service>>
-    #registry object
+    -app: Application
   }
 
   class RegistryManager {
+    -app: Application
     -ContainerRegistry
     -ServiceRegistry
     -HttpRegistry
@@ -461,81 +499,118 @@ classDiagram
   %% Relationship: AbstractManager IMPLEMENTS ManagerInterface
   %% Relationship: *Manager EXTENDS AbstractManager
   ManagerInterface <|-- AbstractManager
-  AbstractManager <|-- ContainerManager
   AbstractManager <|-- FascadeManager
   AbstractManager <|-- ServiceManager
   AbstractManager <|-- HttpManager
   AbstractManager <|-- RegistryManager
 
 ```
-#### C.2.3 Application Associations
+### C.3 Associations
+
+#### C.3.1 Application Associations
 
 ```mermaid
 classDiagram
   direction TD
 
-  class Application {
+  class Application{
     <<Class>>
-    -ContainerManager
-    -ServicesManager
-    -FascadeManager
-    -RegistryManager
-    -HttpManager
+    -ServiceContainer
     -boot()
     -run()
   }
 
+  class ServiceContainer {
+    -boot()
+    -sharedContainer
+    -CacheContainer
+    -ClosureContainer
+  }
+
   %% Relationship: Application OWNS ContainerManager
-  Application --> RegistryManager
-  Application --> ContainerManager
-  Application --> ServiceManager
-  Application --> FascadeManager
-  Application --> HttpManager
+  Application "1" *-- "1" ServiceContainer: owns
+
+  %% Relationship: ContainerManager Creates *Container
+  ServiceContainer ..> SharedContainer
+  ServiceContainer ..> CacheContainer
+  ServiceContainer ..> ClosureContainer  
 
   %% Relationship: ContainerManager OWNS *Container
-  ContainerManager --* ServiceContainer
-  ContainerManager --* SharedContainer 
-  ContainerManager --* CacheContainer 
-  ContainerManager --* FactoryContainer 
+  ServiceContainer "1" *-- "1" SharedContainer
+  ServiceContainer "1" *-- "1" CacheContainer
+  ServiceContainer "1" *-- "1" ClosureContainer
 
-  %% Relationship:  OWNS 
+  %% Relationship:  SharedContainer Provides *SharedService
+  SharedContainer o-- RegistryManager: provides
+  SharedContainer o-- ServiceManager: provides
+  SharedContainer o-- FascadeManager: provides
+  SharedContainer o-- HttpManager: provides
   
+  %% Relationship:  SharedContainer Provides *SharedService
+  CacheContainer "1"o--"*" Dependencies: provides
+  
+  %% Relationship:  ServicesContainer Provides *Services
+  ClosureContainer "1"o--"*" Services: provides
 
+  %% Relationship: Application Resolves managers
+  
 ```
 
-## C.3 Sequences
+---
 
-### C.3.1 Application Configuration
+## C.4 Sequences
+
+### C.4.1 Application Instantiation & Self-Orientation
 
 ```mermaid
 sequenceDiagram
-    participant Application
-    participant RegistryManager
-    participant ContainerManager
-    participant ServiceManager
-    participant FascadeManager
-    participant HttpManager
+    
+    participant Index
+    participant App as Application
+    participant Config as Config/*.php
 
-    %% --- Phase 1: Registration ---
-    Note over Application, RegistryManager: Registration Phase
-    Application->>RegistryManager: new RegistryManager()
-    Application->>RegistryManager: create(ContainerRegistry)
-    Application->>RegistryManager: create(ServiceRegistry)
-    Application->>RegistryManager: create(FascadeRegistry)
+    %% --- Phase 1: Instantiation ---
+    Note over Index, App: Instantiation Phase
+    Index->>App: new Application(dirname(__DIR__))
+
+    activate App
+    
+    %% --- Phase 1: Self-Orientation ---
+    Note right of App: Self-Orientation Phase: Set paths and load config arrays
+    App->>App: Validate and Set Single Instance
+    App->>App: Validate Basepath
+    App->>App: Determine Framework Environment
+    App->>App: Map Filepaths
+
+    %% --- Phase 2: Self-Orientation ---
+    Note over App, Config: Gather configuration array data
+    App->>Config: getConfig()
+    activate Config
+    Config-->>App: Populate $this->config prop with data
+    deactivate Config
+    deactivate App
+
+    
+
+```
+
+### C.4.1 Application Configuration & Boot
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Container as ContainerManager
+
+    %% --- Phase 1: Containerization ---
+    Note over App: Instantiation & Self-Orientation Phase
+
+    activate App
+    App->>App: Self-Orientation
+    deactivate App
 
     %% --- Phase 2: Containerization ---
-    Note over Application, ContainerManager: Containerization Phase
-    RegistryManager-->>Application: get(ContainerRegistry)
-    Application->>ContainerManager: new ContainerManager(Registry)
-    Application->>ContainerManager: create(FactoryContainer)
-    Application->>ContainerManager: create(SharedContainer)
-    Application->>ContainerManager: create(CacheContainer)
-    Application->>ContainerManager: create(ServiceContainer)
-
-    %% --- Phase 3: Start Services ---
-    Note over Application, ServiceManager: Service Initialization
-    RegistryManager-->>Application: get(ServiceRegistry)
-    ContainerManager-->>Application: get(ServiceContainer)
-    Application->>ServiceManager: new ServiceManager(Registry, Container)
-
+    Note over App, Container: Container Config Phase
+    App->>Container: new ContainerManager(configs[containers])
+    activate Container
+    Container->>Container: internal factory process
+    deactivate Container
 ```
