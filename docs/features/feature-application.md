@@ -322,87 +322,9 @@ graph TD;
 classDiagram
   direction TD
 
-  class BindingInterface {
-    <<Interface>>
-    #bind()
-    #resolve()
-    #has()
-    #remove()
-    #clear()
-  }
-
-  class AbstractBinding {
-    <<Abstract>>
-    -config array
-    -bindings array
-    -isSingleton bool
-    -isCache bool
-    #resolve()
-    #has()
-    #remove()
-    #clear()
-  }
-
-  class CacheBindings {
-    <<Class>>
-    -config array
-    -bindings array
-    -isSingleton true
-    -isCache true
-    #bind()
-    -reflect()
-  }
-
-  class ClosureBindings {
-    <<Class>>
-    -config array
-    -bindings array
-    -isSingleton false
-    -isCache false
-    #bind()
-  }
-
-  class SharedBindings {
-    <<Class>>
-    -config array
-    -bindings array
-    -isSingleton true
-    -isCache false
-    #bind()
-  }
-
-  class ServiceContainer {
-    <<Service>>
-    -cache
-    -closures
-    -shared
-    -boot()
-    -register()
-    #bind()
-    #singleton()
-    #resolve()
-    -cache()
-    -inCache()
-    -inShared()
-    -inClosures()
-  }
-
   class Registry {
     <<Class>>
     -data
-    -dataTypes array
-    #has()
-    #get()
-    #set()
-    #clear()
-    #remove()
-    #all()
-  }
-
-  class AbstractRegistry {
-    <<Abstract>>
-    -data
-    -dataTypes [...]
     #has()
     #get()
     #set()
@@ -410,6 +332,22 @@ classDiagram
     #remove()
     #all()
     -makeAlias()
+  }
+
+  class ServiceContainer {
+    <<Service>>
+    -config array
+    -bindings array
+    -instances array
+    -reflectionCache array
+    #bind()
+    #resolve()
+    #cache()
+    #share()
+    #singleton()
+    #inCache()
+    #inShared()
+    #inBindings()
   }
 
   class Application {
@@ -422,29 +360,19 @@ classDiagram
     +all()
     +register()
     +unregister()
+    -route()
   }
 
-  %% Abstract IMPLEMENTS Interface
-  AbstractBinding <|-- BindingInterface: implements
-
-  %% Concrete Container EXTENDS AbstractContainer
-  CacheBindings <|-- AbstractBinding: extends
-  ClosureBindings <|-- AbstractBinding: extends
-  SharedBindings <|-- AbstractBinding: extends
-
-  %% Container Manager CONTAINS Containers
-  ServiceContainer o-- CacheBindings: has
-  ServiceContainer o-- ClosureBindings: has
-  ServiceContainer o-- SharedBindings: has
-
   %% Application Extends ServiceContainer
-  Application <|-- ServiceContainer: extends
+  %%Application <|-- ServiceContainer: extends
 
   %% Application Has Registry
   Application "1"o--"1" Registry: has
+  Application "1"o--"1" ServiceContainer: has
 
-  %% Registry Extends AbstractRegistry
-  Registry <|-- AbstractRegistry: extends
+  %% Registry Depends on Application Instance
+  Registry ..> Application: uses
+  ServiceContainer ..> Application: uses
 
 
 ```
@@ -454,16 +382,8 @@ classDiagram
 ```mermaid
 classDiagram
   direction TD
-  class ManagerInterface {
-    <<Interface>>
-    #boot()
-    #run()
-  }
-
   class AbstractManager {
     <<Abstract>>
-    #register()
-    #unregister()
     #refresh()
     #clear()
     +list()
@@ -472,88 +392,6 @@ classDiagram
     +get()
     +create()
   }
-
-  class FascadeManager {
-    <<Service>>
-    -app: Application
-  }
-
-  class ServiceManager {
-    <<Service>>
-    -app: Application
-  }
-
-  class HttpManager {
-    <<Service>>
-    -app: Application
-  }
-
-  class RegistryManager {
-    -app: Application
-    -ContainerRegistry
-    -ServiceRegistry
-    -HttpRegistry
-    -FascadeRegistry
-  }
-
-  %% Relationship: AbstractManager IMPLEMENTS ManagerInterface
-  %% Relationship: *Manager EXTENDS AbstractManager
-  ManagerInterface <|-- AbstractManager
-  AbstractManager <|-- FascadeManager
-  AbstractManager <|-- ServiceManager
-  AbstractManager <|-- HttpManager
-  AbstractManager <|-- RegistryManager
-
-```
-### C.3 Associations
-
-#### C.3.1 Application Associations
-
-```mermaid
-classDiagram
-  direction TD
-
-  class Application{
-    <<Class>>
-    -ServiceContainer
-    -boot()
-    -run()
-  }
-
-  class ServiceContainer {
-    -boot()
-    -sharedContainer
-    -CacheContainer
-    -ClosureContainer
-  }
-
-  %% Relationship: Application OWNS ContainerManager
-  Application "1" *-- "1" ServiceContainer: owns
-
-  %% Relationship: ContainerManager Creates *Container
-  ServiceContainer ..> SharedContainer
-  ServiceContainer ..> CacheContainer
-  ServiceContainer ..> ClosureContainer  
-
-  %% Relationship: ContainerManager OWNS *Container
-  ServiceContainer "1" *-- "1" SharedContainer
-  ServiceContainer "1" *-- "1" CacheContainer
-  ServiceContainer "1" *-- "1" ClosureContainer
-
-  %% Relationship:  SharedContainer Provides *SharedService
-  SharedContainer o-- RegistryManager: provides
-  SharedContainer o-- ServiceManager: provides
-  SharedContainer o-- FascadeManager: provides
-  SharedContainer o-- HttpManager: provides
-  
-  %% Relationship:  SharedContainer Provides *SharedService
-  CacheContainer "1"o--"*" Dependencies: provides
-  
-  %% Relationship:  ServicesContainer Provides *Services
-  ClosureContainer "1"o--"*" Services: provides
-
-  %% Relationship: Application Resolves managers
-  
 ```
 
 ---
@@ -567,7 +405,10 @@ sequenceDiagram
     
     participant Index
     participant App as Application
+    participant Reg as Registry
+    participant Container as ServiceContainer
     participant Config as Config/*.php
+    
 
     %% --- Phase 1: Instantiation ---
     Note over Index, App: Instantiation Phase
@@ -575,42 +416,55 @@ sequenceDiagram
 
     activate App
     
-    %% --- Phase 1: Self-Orientation ---
-    Note right of App: Self-Orientation Phase: Set paths and load config arrays
+    %% --- Phase 1: Self-Orientation Phase ---
+    Note over App:Self-Orientation Phase
     App->>App: Validate and Set Single Instance
     App->>App: Validate Basepath
     App->>App: Determine Framework Environment
-    App->>App: Map Filepaths
 
-    %% --- Phase 2: Self-Orientation ---
-    Note over App, Config: Gather configuration array data
+    %% --- Phase 2: Registry Phase ---
+    Note over App, Reg: Registry Phase
+    App->>App: Map Filepaths
+    App->>Reg: new Registry($this)
+    activate Reg
+    Reg-->>App: return void
+
+    %% Filepath Registry Loop
+    deactivate Reg
+
+    loop foreach Filepath 
+      App->>Reg: register(key, value)
+      activate Reg
+      Note left of Reg: Store Filepath in Registry
+      deactivate Reg
+    end
+
+    %% Get Filepaths and Store
     App->>Config: getConfig()
     activate Config
-    Config-->>App: Populate $this->config prop with data
+    Config-->>App: return config array
     deactivate Config
-    deactivate App
-
     
+    %% Get Configuration Properties and Store
+    loop foreach  Property 
+      App->>Reg: register(key, value)
+      activate Reg
+      Note left of Reg: Store Configuration Property
+      deactivate Reg
+    end
 
-```
-
-### C.4.1 Application Configuration & Boot
-```mermaid
-sequenceDiagram
-    participant App as Application
-    participant Container as ContainerManager
-
-    %% --- Phase 1: Containerization ---
-    Note over App: Instantiation & Self-Orientation Phase
-
-    activate App
-    App->>App: Self-Orientation
+    %% Phase 3: Container Phase
+    Note over App, Container: Containerization Phase
+    App->>Container: new ServiceContainer($this)
+    activate Container
+    Container-->>App: return void
+    deactivate Container
+    App->>Reg:getServices()
+    activate Reg
+    Reg-->>App:return servicesArray[]
+    deactivate Reg
+    
+    
     deactivate App
 
-    %% --- Phase 2: Containerization ---
-    Note over App, Container: Container Config Phase
-    App->>Container: new ContainerManager(configs[containers])
-    activate Container
-    Container->>Container: internal factory process
-    deactivate Container
 ```
