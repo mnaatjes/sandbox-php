@@ -40,4 +40,6 @@
     - [ ] *Transient* Container - containing closures that render instances
   - [ ] Use it for various types of Containers:
     - [ ] **Cache** - Reflection Cache / AutoWired Dependencies
-    - [ ] 
+- [ ] **Decouple FileSystem and DotEnv Classes from Application**
+  - [ ] Move **FileSystem** out of Application `__construct()`
+  - [ ] Move **DotEnv** out of Application `__construct()`

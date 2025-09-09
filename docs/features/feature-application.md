@@ -313,7 +313,6 @@ graph TD;
   A.B.B.A.E[Service]
   A.B.B.B[Registry]
 
-  A.B.C[FileSystem Manager]
   A.B.D[StaticProxy Manager]
 
   %% Connect Nodes (Heirarchy)
@@ -423,45 +422,50 @@ classDiagram
     +has()
     +add()
     +get()
+    +create()
   }
 
   class ContainerManager {
     <<Service>>
-    #registry array
+    #registry object
     -shared SharedContainer
     -services ServiceContainer
     -cache CacheContainer
     -factory FactoryContainer
   }
 
-  class FileSystemManager {
+  class FascadeManager {
     <<Service>>
-    #registry array
-  }
-
-  class StaticProxyManager {
-    <<Service>>
-    #registry array
+    #registry object
+    #container object
   }
 
   class ServiceManager {
     <<Service>>
-    #registry array
+    #registry object
+    #container object
   }
 
   class HttpManager {
     <<Service>>
-    #registry array
+    #registry object
+  }
+
+  class RegistryManager {
+    -ContainerRegistry
+    -ServiceRegistry
+    -HttpRegistry
+    -FascadeRegistry
   }
 
   %% Relationship: AbstractManager IMPLEMENTS ManagerInterface
   %% Relationship: *Manager EXTENDS AbstractManager
   ManagerInterface <|-- AbstractManager
   AbstractManager <|-- ContainerManager
-  AbstractManager <|-- FileSystemManager
-  AbstractManager <|-- StaticProxyManager
+  AbstractManager <|-- FascadeManager
   AbstractManager <|-- ServiceManager
   AbstractManager <|-- HttpManager
+  AbstractManager <|-- RegistryManager
 
 ```
 #### C.2.3 Application Associations
@@ -474,17 +478,19 @@ classDiagram
     <<Class>>
     -ContainerManager
     -ServicesManager
-    -FileSystem
-    -StaticProxyManager
+    -FascadeManager
+    -RegistryManager
+    -HttpManager
     -boot()
     -run()
   }
 
   %% Relationship: Application OWNS ContainerManager
+  Application --> RegistryManager
   Application --> ContainerManager
-  Application --> FileSystemManager
   Application --> ServiceManager
-  Application --> StaticProxyManager
+  Application --> FascadeManager
+  Application --> HttpManager
 
   %% Relationship: ContainerManager OWNS *Container
   ContainerManager --* ServiceContainer
@@ -492,7 +498,44 @@ classDiagram
   ContainerManager --* CacheContainer 
   ContainerManager --* FactoryContainer 
 
-  %% Relationship: FileSystemManager OWNS 
+  %% Relationship:  OWNS 
   
+
+```
+
+## C.3 Sequences
+
+### C.3.1 Application Configuration
+
+```mermaid
+sequenceDiagram
+    participant Application
+    participant RegistryManager
+    participant ContainerManager
+    participant ServiceManager
+    participant FascadeManager
+    participant HttpManager
+
+    %% --- Phase 1: Registration ---
+    Note over Application, RegistryManager: Registration Phase
+    Application->>RegistryManager: new RegistryManager()
+    Application->>RegistryManager: create(ContainerRegistry)
+    Application->>RegistryManager: create(ServiceRegistry)
+    Application->>RegistryManager: create(FascadeRegistry)
+
+    %% --- Phase 2: Containerization ---
+    Note over Application, ContainerManager: Containerization Phase
+    RegistryManager-->>Application: get(ContainerRegistry)
+    Application->>ContainerManager: new ContainerManager(Registry)
+    Application->>ContainerManager: create(FactoryContainer)
+    Application->>ContainerManager: create(SharedContainer)
+    Application->>ContainerManager: create(CacheContainer)
+    Application->>ContainerManager: create(ServiceContainer)
+
+    %% --- Phase 3: Start Services ---
+    Note over Application, ServiceManager: Service Initialization
+    RegistryManager-->>Application: get(ServiceRegistry)
+    ContainerManager-->>Application: get(ServiceContainer)
+    Application->>ServiceManager: new ServiceManager(Registry, Container)
 
 ```

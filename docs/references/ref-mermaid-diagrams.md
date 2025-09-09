@@ -104,3 +104,109 @@ graph TD;
     F --> B;
     G --> D;
 ```
+
+## 3.0 UML Sequence Diagrams
+
+### 3.1 Example 1
+```mermaid
+sequenceDiagram
+    participant Application
+    participant RegistryManager
+    participant EventManager
+
+    %% --- Phase 1: Registration ---
+    Note over Application, RegistryManager: Registration Phase
+    Application->>RegistryManager: new RegistryManager()
+    Application->>RegistryManager: registerEvent('user.created', ...)
+    Application->>RegistryManager: registerEvent('user.deleted', ...)
+
+    %% --- Phase 2: Distribution & Execution ---
+    Note over Application, EventManager: Execution Phase
+    Application->>RegistryManager: getEventRegistry()
+    activate RegistryManager
+    RegistryManager-->>Application: eventRegistry
+    deactivate RegistryManager
+
+    Application->>EventManager: new EventManager(eventRegistry)
+    Application->>EventManager: dispatch('user.created')
+    activate EventManager
+    EventManager-->>Application: void
+    deactivate EventManager
+```
+
+### 3.2 Example 2
+
+```mermaid
+sequenceDiagram
+    participant Application
+    participant RegistryManager
+    participant ContainerManager
+
+    %% --- Phase 1: Registry Creation ---
+    Note over Application, RegistryManager: Phase 1: Registry is Created
+    Application->>RegistryManager: create('ContainerRegistry')
+    activate RegistryManager
+    RegistryManager-->>Application: void
+    deactivate RegistryManager
+
+
+    %% --- Phase 2: Instantiation & Injection ---
+    Note over Application, ContainerManager: Phase 2: Manager is Instantiated with Registry
+    
+    # 1. Application gets the created registry from the RegistryManager
+    Application->>RegistryManager: getContainerRegistry()
+    activate RegistryManager
+    RegistryManager-->>Application: containerRegistry
+    deactivate RegistryManager
+    
+    # 2. Application creates the new manager, passing the registry into its constructor
+    Application->>ContainerManager: new ContainerManager(containerRegistry)
+```
+
+### 3.3 Example 3
+
+```mermaid
+sequenceDiagram
+    participant SM as ServiceManager
+    participant SA as ServiceA
+    participant SB as ServiceB
+    participant NP as NextParticipant
+
+    Note over SM, SB: Phase 1: Initialization
+    
+    SM->>SA: <<create>>
+    activate SA
+    SM->>SA: initialize()
+    
+    SM->>SB: <<create>>
+    activate SB
+    SM->>SB: configure("some_setting")
+    deactivate SA
+    deactivate SB
+
+    Note over SM, NP: Phase 2: Main Interaction
+    
+    SM->>NP: doSomething()
+    activate NP
+    NP-->>SM: result
+    deactivate NP
+```
+
+## 4.0 Flowchart
+
+```mermaid
+graph TD
+    subgraph "Phase 1: Registration"
+        A[Start] --> B(Create RegistryManager);
+        B --> C{Define Events/Routes};
+        C --> D[app.registerEvent];
+        D --> C;
+    end
+
+    subgraph "Phase 2: Execution"
+        C --> E[Create EventManager];
+        E --> F(Inject Registry into EventManager);
+        F --> G[app.dispatch];
+        G --> H[End];
+    end
+```
