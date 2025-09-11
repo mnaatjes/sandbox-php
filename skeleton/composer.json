@@ -1,0 +1,36 @@
+{
+    "name": "mnaatjes/mvc-skeleton",
+    "description": "MVCFramework Skeleton",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michael Naatjes",
+            "email": "michael.naatjes87@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "mnaatjes/mvc-framework": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "files": []
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Tests\\": "tests/"
+        },
+        "files": []
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../core"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
