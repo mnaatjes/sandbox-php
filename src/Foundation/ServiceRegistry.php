@@ -24,7 +24,7 @@
         /**-------------------------------------------------------------------------*/
         public static function getInstance(?Application $application_instance){
 			// Check if already declared
-			if(is_null(self::$instance)){
+			if(!isset(self::$instance)){
 				self::$instance = new ServiceRegistry($application_instance);
 			}
 			// Return instance
