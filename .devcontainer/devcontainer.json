@@ -6,5 +6,17 @@
     "remoteUser": "gemini",
 
     // Set the HOME environment variable for the container
-    "containerEnv": { "HOME": "/home/gemini" }
+    "containerEnv": {
+        "HOME": "/home/gemini"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bierner.markdown-mermaid",
+                "ms-vscode-remote.remote-containers",
+                "bpruitt-goddard.mermaid-markdown-syntax-highlighting",
+                "bmewburn.vscode-intelephense-client",
+            ]
+        }
+    }
 }
