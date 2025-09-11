@@ -121,7 +121,7 @@
             }
 
             // Check Bindings for closure
-            if(array_key_exists($key, $this->bindings)){
+            else if(array_key_exists($key, $this->bindings)){
                 // Key exists in bindings as closure
                 // Execute Binding Closure
                 $resolver = $this->bindings[$key];
@@ -148,19 +148,32 @@
             // Key NOT in Shared
             // Key NOT in Bindings
             // Check if key can be instantiated as a Class
-            if(class_exists($key)){
+            else if(class_exists($key)){
+
+                // Check if Key has already been Reflected in Cache
+                if(array_key_exists($key, $this->cache)){
+                    // Key exists in cache
+                    // Class already reflected
+                    // Return instance from cache
+                    return $this->cache[$key];
+                }
                 // Key references a classname
                 // Reflect classname
-                $this->reflect($key);
+                $instance = $this->reflect($key);
 
-                // Return instance in cache
-                return $this->cache[$key];
+                // Cache Instance
+                $this->cache[$key] = $instance;
+                
+                // Return instance
+                return $instance;
             }
 
             // Key is NOT Classname
             // Key cannot be resolved
-            // Throw exception
-            throw new \Exception("Unable to resolve key: " . $key);
+            else {
+                // Throw exception
+                //throw new \Exception("Unable to resolve key: " . $key);
+            }
         }
 
         /**-------------------------------------------------------------------------*/
@@ -186,7 +199,94 @@
          * @return void
          */
         /**-------------------------------------------------------------------------*/
-        private function reflect(string $key){
+        public function reflect(string $key){
+            
+			/**
+             * Create Reflection class from Classname key
+			 * @var \ReflectionClass
+			 */
+			$reflectionClass = new \ReflectionClass($key);
+
+			/**
+			 * Constructor of Reflected Class if present
+			 * @var ?object $constructor
+			 */
+			$constructor = $reflectionClass->getConstructor();
+
+            /**
+             * Dependencies - if they exist - for the Reflected Class Instance
+             * @var ?array $dependencies
+             */
+            $dependencies = [];
+
+            if(!is_null($constructor)){
+                // Constructor Exists
+                // Check for parameters
+                /**
+                 * Parameters of Reflected Class if Constructor Present
+                 * @var array $parameters
+                 */
+                $parameters = $constructor->getNumberOfParameters() > 0 ? $constructor->getParameters() : NULL;
+
+                // Check if parameters exist and loop each to collect as dependencies
+                if(!is_null($parameters)){
+                    // Parameters Exist
+                    // Loop parameters
+
+                    foreach($parameters as $param){
+                        /** @var ?object $type Object containing type information */
+                        $type = $param->getType();
+
+                        // Determine if type Class or Interface
+                        // Check name is valid class
+                        if(class_exists($type->getName())){
+                            // Classname exists
+                            // Resolve the class
+                            // Add result to dependencies
+                            $dependencies[] = $this->resolve($type->getName());
+                        }
+                        
+                        // Type-name is NOT a Class
+                        // Determine if type is primitive / built-in
+                        else if($type->isBuiltin()){
+                            // Parameter type is a built-in / primitive type and NOT a class or interface
+                            // Check for default value
+                            if($param->isDefaultValueAvailable()){
+                                // Parameter has default value
+                                // Append Default value to Dependencies array
+                                $dependencies[] = $param->getDefaultValue();
+
+                            } else {
+                                // Unable to resolve Primitive
+                                throw new \Exception("Unable to resolve primitive dependency for " . $key . " class _construct() parameter");
+                            }
+                        }
+
+                        // Type is NOT a Class / Interface
+                        // Type is NOT a primitive / built-in
+                        // Parameter cannot be resolved
+                        else {
+                            // Throw Unresolved Type Exception
+                            throw new \Exception("Unable to resolve dependency type for parameter: " . $type->getName());
+                        }
+                    }
+                }
+            }
+
+            /**
+             * Rendered Instance of Class
+             * @var object $instance
+             */
+            /*
+            $instance = empty($dependencies) && is_null($constructor)
+                ? $reflectionClass->newInstance()
+                : $reflectionClass->newInstanceArgs($dependencies);
+            */
+        }
+
+
+
+        private function d__reflect(string $key){
 			/**
 			 * Temporary array for holding dependencies for class instantiation
 			 * @var array $dependencies

@@ -3,8 +3,10 @@
     use MVCFrame\Tests\Classes\Pizza;
     use MVCFrame\FileSystem\Path;
 use MVCFrame\Tests\Classes\FailSon;
+use MVCFrame\Tests\Classes\MagicEightball;
 use MVCFrame\Tests\Classes\Vacuum;
 use MVCFrame\Tests\Classes\SovietCarWash;
+use MVCFrame\Tests\Turducken\Turkey;
 
     // Include autoloader
     require_once(__DIR__ . '/../vendor/autoload.php');
@@ -88,7 +90,8 @@ use MVCFrame\Tests\Classes\SovietCarWash;
     $app->share(Vacuum::class, function(){return new Vacuum("stuff");});
     */
     //$app->share(SovietCarWash::class, SovietCarWash::class);
-    $result = $app->get(SovietCarWash::class);
-    var_dump($app->all());
+    //$result = $app->get(SovietCarWash::class);
+    $result = $app->get(Turkey::class);
+    //var_dump($app->all());
     //var_dump($result);
 ?>
