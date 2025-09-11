@@ -1,2 +1,8 @@
 # Composer
 vendor/
+
+# devcontainer not needed
+.devcontainer/
+
+# env for win11 wsl2
+.env
