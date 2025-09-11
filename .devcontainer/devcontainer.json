@@ -1,0 +1,10 @@
+{
+    "name": "PHP Development",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "php",
+    "workspaceFolder": "/var/www/html",
+    "remoteUser": "gemini",
+
+    // Set the HOME environment variable for the container
+    "containerEnv": { "HOME": "/home/gemini" }
+}
