@@ -42,7 +42,7 @@
         /**-------------------------------------------------------------------------*/
         public static function getInstance(?Application $application_instance){
 			// Check if already declared
-			if(is_null(self::$instance)){
+			if(!isset(self::$instance)){
 				self::$instance = new ServiceContainer($application_instance);
 			}
 			// Return instance
@@ -99,51 +99,68 @@
 
         /**-------------------------------------------------------------------------*/
         /**
-         * Resolve dependency from Container
+         * Resolves Instance by Key in order:
+         * - Shared
+         * - Bindings
+         * - Reflects
+         * - Cache
+         * - Exception
          *
          * @param string $key
          * @return void
+         * @throws \Exception Unable to resolve
          */
         /**-------------------------------------------------------------------------*/
         public function resolve(string $key){
-			// Check if key does not exists
-            // Check for key in Registry
-			if(!array_key_exists($key, $this->bindings)){
-				
-				// Check if NOT Registered in ReflectionCache
-                if(!array_key_exists($key, $this->cache)){
-                    // Element NOT Registered in Cache
-                    // Reflect and register in cache
-                    $this->reflect($key);
+            // Check Shared and Resolved Instance
+            if(array_key_exists($key, $this->shared) && !is_null($this->shared[$key])){
+                // Key exists in shared
+                // Return instance from shared
+                return $this->shared[$key];
+                
+            }
+
+            // Check Bindings for closure
+            if(array_key_exists($key, $this->bindings)){
+                // Key exists in bindings as closure
+                // Execute Binding Closure
+                $resolver = $this->bindings[$key];
+
+                // Instantiate Closure Object
+                // Append Application instance as parameter
+                $instance = $resolver($this->app);
+
+                // Check that the key is marked in the Shared array
+                if(array_key_exists($key, $this->shared) && is_null($this->shared[$key])){
+                    // Key exists in shared
+                    // Store instance in Shared
+                    $this->shared[$key] = $instance;
+
+                    // Return instance from shared
+                    return $this->shared[$key];
                 }
 
-                // Item IS Registered in Cache
-                // Return Dependency Instance from Cache
+                // Key Not associated with Shared Array
+                // Return Resolved Instance
+                return $instance;
+            }
+
+            // Key NOT in Shared
+            // Key NOT in Bindings
+            // Check if key can be instantiated as a Class
+            if(class_exists($key)){
+                // Key references a classname
+                // Reflect classname
+                $this->reflect($key);
+
+                // Return instance in cache
                 return $this->cache[$key];
             }
 
-			if(array_key_exists($key, $this->shared) && $this->shared[$key] !== NULL){
-				// Singleton instance has been created. 
-				// Render existing instance from shared array
-				$instance = $this->shared[$key];
-				return $instance;
-			}
-
-			// Resolve binding
-			/** @var mixed Resolver */
-			$resolver = $this->bindings[$key];
-
-			/** @var callable Instance of binding */
-			$instance = $resolver($this);
-
-			// Check if key exists in $shared and store instance in $shared
-			if(array_key_exists($key, $this->shared) && $this->shared[$key] === NULL){
-				// Register handler with $shared array
-				$this->shared[$key] = $instance;
-			}
-
-			// Return resolver default as method
-			return $instance;
+            // Key is NOT Classname
+            // Key cannot be resolved
+            // Throw exception
+            throw new \Exception("Unable to resolve key: " . $key);
         }
 
         /**-------------------------------------------------------------------------*/
