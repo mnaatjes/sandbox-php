@@ -1,14 +1,12 @@
 # Composer
 vendor/
 
-<<<<<<< HEAD
 # Generated CSS
 skeleton/public/css/main.css
 skeleton/public/css/main.css.map
-=======
+
 # devcontainer not needed
 .devcontainer/
 
 # env for win11 wsl2
 .env
->>>>>>> restructure
