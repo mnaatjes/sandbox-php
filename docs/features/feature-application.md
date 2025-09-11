@@ -296,7 +296,7 @@ graph TD;
   %% Define Nodes (Positions)
   App[Application]
   
-  App.Container[SerivceContainer]
+  App.Container[ServiceContainer]
   App.Container.A[Shared]
   App.Container.B[Closures]
   App.Container.C[Cache]
@@ -408,6 +408,7 @@ sequenceDiagram
     participant Reg as Registry
     participant Container as ServiceContainer
     participant Config as Config/*.php
+    participant Service as ServiceManager
     
 
     %% --- Phase 1: Instantiation ---
@@ -455,16 +456,38 @@ sequenceDiagram
 
     %% Phase 3: Container Phase
     Note over App, Container: Containerization Phase
+    
+    %% Create Container
     App->>Container: new ServiceContainer($this)
     activate Container
     Container-->>App: return void
     deactivate Container
-    App->>Reg:getServices()
+
+    %% Bind ServicesManager
+    App->>Container: new ServicesManager()
+    activate Container
+    Container-->>App: void
+    deactivate Container
+
+    App->>Container: resolve(ServiceManager)
+    activate Container
+    Container-->>App: Service Manager instance
+    deactivate Container
+
+    App->>Service: ServiceManager->boot()
+    activate Service
+    Service->>Reg: getConfig()
     activate Reg
-    Reg-->>App:return servicesArray[]
+    Reg-->>Service: services array []
     deactivate Reg
-    
-    
+
+    loop foreach  Property 
+      Service->>Container: bind(service)
+      activate Container
+      Note left of Container: bind(Service)
+      deactivate Container
+    end
+    deactivate Service
     deactivate App
 
 ```

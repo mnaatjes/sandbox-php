@@ -1,114 +1,327 @@
 <?php
 
-	namespace MVCFrame\Foundation;
-	use MVCFrame\ServiceContainer\Container;
-	use MVCFrame\FileSystem\Path;
-	use MVCFrame\FileSystem\PathRegistry;
-	use MVCFrame\FileSystem\DotEnv;
+    namespace MVCFrame\Foundation;
+    use MVCFrame\FileSystem\Path;
 
-	class Application extends Container {
+    class Application {
 
-		/** @var integer Instance Count to prevent more than one instance */
-		private static int $instanceCount=0;
-		private static ?Application $instance=NULL;
-
-		private ?PathRegistry $pathRegistry;
-
-		private ?DotEnv $envManager;
-
-		/**-------------------------------------------------------------------------*/
 		/**
-		 * Application Constructor
-		 *
-		 * @param string $root_directory
+		 * Required Directories assoc array by environment
+		 * @var const REQUIRED_DIR
 		 */
-		/**-------------------------------------------------------------------------*/
-		public function __construct(string $root_directory){
-			// Check instance count and limit to 1
-			if(static::$instanceCount !== 0){
-				// Trigger Exception: Cannot Create more than one instance
-				throw new \Exception("Cannot Instantiate more than ONE Instance of Application!");
-			}
+		private const REQUIRED_DIR=[
+			"app" 		=> ["dev" => "", "production" => "/app"],
+			"config" 	=> ["dev" => "/bootstrap", "production" => "/config"],
+			"database" 	=> ["dev" => "/db", "production" => "/database"],
+			"public" 	=> ["dev" => "/../public", "production" => "/public"],
+			"storage" 	=> ["dev" => "/storage", "production" => "/storage"],
+			"resource" 	=> ["dev" => "/resources", "production" => "/resources"],
+			"routes"	=> ["dev" => "/routes", "production" => "/routes"],
+		];
 
-			// Set Instance Count
-			// Set instance
-			static::$instanceCount = 1;
-			self::$instance = $this;
+        /**
+         * Application Instance
+         *
+         * @var Application|null
+         */
+        private static ?Application $instance;
 
-			// Configure Application
-			$this->configureApplication($root_directory);
+        /**
+         * Base Path of Environment
+         *
+         * @var Path|null
+         */
+        private ?Path $basepath;
 
-			// Execute Parent Constructor
-			// Enables ReflectionCache
-			parent::__construct();
-			var_dump($this->cache);
-		}
+        private ?ServiceContainer $container;
 
-		/**-------------------------------------------------------------------------*/
-		/**
-		 * Check for an instance of the Application
-		 * @throws \Exception If Application not instantiated
-		 * @return self
-		 */
-		/**-------------------------------------------------------------------------*/
-		public static function getInstance(): self{
+        private ?ServiceRegistry $registry;
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Construct for Application
+         * - Allows only 1 instnace
+         * - Requires valid base-path as parameter
+         *
+         * @param string $base_path
+         */
+        /**-------------------------------------------------------------------------*/
+        public function __construct(string $base_path){
+            // Enforce Singleton Behavior:
+            // Validate and Configure Instance
+            // Check for existing instance
+            if(isset(self::$instance)){
+                throw new \Exception("Application instance already exists!");
+            }
+
+            // Set instance
+            self::$instance = $this;
+
+            // Validate Basepath
+            // Create Path instance
+            // Check exists
+            $this->basepath = Path::create($base_path);
+            if(!$this->basepath->exists()){
+                throw new \Exception("Base path: " .(string)$this->basepath. " does NOT exist!");
+            }
+
+            // Create Registry Instance
+            $this->registry = ServiceRegistry::getInstance($this);
+
+            // Create Container Instance
+            $this->container = ServiceContainer::getInstance($this);
+            
+        }
+        
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Finds and returns existing instance
+         *
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
+        public static function getInstance(){
 			// Check if already declared
 			if(is_null(self::$instance)){
-				// Application has not yet been instantiated
-				// Throw Exception
-				throw new \Exception("Application has not yet been instantiated! Must create Application before making call");
+				throw new \Exception("Application has NOT been instantiated! Create new Application(dirname(__DIR___)) in bootstrap/app.php");
 			}
-
 			// Return instance
 			return self::$instance;
-		}
+        }
 
-		/**-------------------------------------------------------------------------*/
-		/**
-		 * Configures Application in Cascade of Importance
-		 * @param  string $root_directory [description]
-		 * @return [type]                 [description]
-		 */
-		/**-------------------------------------------------------------------------*/
-		private function configureApplication(string $root_directory){
-			// Create rootDir path instance
-			// Validate and Assign Root Directory
-			$rootDir = Path::create($root_directory);
-			if(!$rootDir->exists()){
-				// Directory does not exist
-				throw new \Exception("Root Directory ".$root_directory." DOES NOT exist!");
+        private function selfOrient(?Path $basePath){
+			// Configurate Base Paths
+			foreach(self::REQUIRED_DIR as $key => $dir){
+				// Determine Environment of Framework
+                /*
+				if($env === "dev"){
+					// Framework in Development Environment
+					// Combine and instantiate path
+					$path = Path::create(
+						$this->rootDir . $dir[$env]
+					);
+
+					// Register paths
+					$this->register("base", $key, $path);
+				}
+                */
 			}
+        }
 
-			// Determine Environment of Framework
-			// TODO: Use env loading
-			$env = $rootDir->getBasename() === "tests" ? "dev" : "production";
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Checks if provided value is a dependency:
+         * - Callable
+         * - Classname
+         *
+         * @param [type] $value
+         * @return boolean
+         */
+        /**-------------------------------------------------------------------------*/
+        private function isDependency($value): bool{
 
-			// Instantiate Path Registry
-			$this->pathRegistry = new PathRegistry($rootDir, $env);
+           // Check String Value
+            if(is_string($value)){
+                // Value string can be classname or defined function
+                // Returns false if neither callable or classname
+                return is_callable($value) || class_exists($value);
+            }
 
-			// Register ENV Path
-			path("base", "config.env", Path::join(path("base.config"), path("/.env")));
-			
-			$this->envManager = new DotEnv();
-		}
+            // Check if callable
+            return is_callable($value);
+        }
 
-		/**-------------------------------------------------------------------------*/
-		/**-------------------------------------------------------------------------*/
-		public function getPathRegistry(){
-			// Return Instance Path Registry
-			return $this->pathRegistry;
-		}
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Checks if Key matches pattern
+         *
+         * @param string $key
+         * @return boolean
+         */
+        /**-------------------------------------------------------------------------*/
+        private function isValidKey(string $key){
+            // Rules:
+            // Start with string
+            // Letters, numbers, "_" or "\" are valid
+            // Must end with letter or number
+            $pattern = '/^[a-zA-Z0-9](?:[a-zA-Z0-9_\\\\]*[a-zA-Z0-9])?$/';
+            return preg_match($pattern, $key) == 1;
+        }
 
-		/**-------------------------------------------------------------------------*/
-		/**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Checks if Alias matches pattern
+         *
+         * @param string $alias
+         * @return boolean
+         */
+        /**-------------------------------------------------------------------------*/
+        private function isValidAlias(string $alias){
+            // Rules:
+            // Start with letter
+            // End with number or letter
+            $pattern = '/^[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?)*$/';
 
-		/**-------------------------------------------------------------------------*/
-		/**-------------------------------------------------------------------------*/
+            return preg_match($pattern, $alias) == 1;
+        }
 
-		/**-------------------------------------------------------------------------*/
-		/**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Adds a new value to the Container or Registry based on Alias rules and type
+         *
+         * @uses MVCFrame\Foundation\Application->set()
+         * 
+         * @param string $key
+         * @param [type] $value
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
+        public function add(string $key, $value): void{
+            // Check if value at key already exists
+            if($this->registry->has($key) || $this->container->has($key)){
+                // Cannot add an existing key or alias
+                throw new \Exception("Cannot add() existing Key or Alias to Container or Registry! Use set() to overwrite existing record!");
+            }
 
-		/**-------------------------------------------------------------------------*/
-		/**-------------------------------------------------------------------------*/
-	}
+            // Use set() to apply
+            $this->set($key, $value);
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Store Container dependency as singleton instance in Shared array
+         *
+         * @param string $key
+         * @param [type] $value
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
+        public function share(string $key, $value){
+            // Execute set() with singleton value true
+            $this->set($key, $value, true);
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Sets value in either Registry or Container depending on type and format of key
+         * - Overwrites existing at alias / key
+         * - Aliases (dot-notation) and non-callables saved in ServiceRegistry
+         * - Keys, Classnames and instances, callables, closures saved in ServiceContainer
+         *
+         * @param string $key
+         * @param [type] $value
+         * @param bool $isSingleton - Default: false; True: save to Container->$shared array
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
+        public function set(string $key, $value, $isSingleton=false): void{
+            // Determine if alias or key
+            $isAlias = str_contains($key, ".") ? true : false;
+
+            // Validate Alias
+            if($isAlias && !$this->isValidAlias($key)){
+                // Invalid Alias
+                throw new \Exception("Invalid Alias: " . $key);
+            }
+
+            // Validate Key
+            if(!$isAlias && !$this->isValidKey($key)){
+                // Invalid Key
+                throw new \Exception("Invalid Key: " . $key);
+            }
+
+            // Determine if Dependency
+            $isDependency = $this->isDependency($value);
+
+            // Non-Alias Dependency
+            if(!$isAlias && $isDependency) {
+                // Value IS a valid dependency and belongs in Container
+                // Determine if Shared or Closure Binding
+                if($isSingleton){
+                    // Save to Container shared array
+                    // Ensure key not already registerd
+                    if($this->container->has($key)){
+                        // Key already exists and cannot be overwritten
+                        throw new \Exception("Container key: " . $key . " Already Exists! Shared Keys cannot be overwritten!");
+                    }
+                    // Store in Container Shared array
+                    $this->container->share($key, $value);
+
+                } else {
+                    // Save to bindings
+                    $this->container->bind($key, $value);
+                }
+
+            } else if($isAlias && !$isDependency){
+                // Value is NOT a dependency and belongs in Registry
+                $this->registry->register($key, $value);
+            } else {
+                // Cannot set with either Container or Registry
+                throw new \Exception("Unable to add / set in either Container or Registry! Alias must contain a period!");
+            }
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Searches Registry and Container for Value from key / alias
+         *
+         * @param string $key
+         * @return boolean
+         */
+        /**-------------------------------------------------------------------------*/
+        public function has(string $key): bool{
+            // Determine if seeking value from Container or Registry:
+            // Determine if dot-map alias
+            if(str_contains($key, ".")){
+                // $key is an alias
+                // Check Registry
+                return $this->registry->has($key);
+            } else {
+                // Check Container
+                return $this->container->has($key);
+            }
+        }
+
+        public function get(string $key){
+            // Check Registry
+            if($this->registry->has($key)){
+                // Found in Registry
+                return $this->registry->lookup($key);
+
+            }
+
+            // Perform Resolve with Container
+            // Validate $key
+            if(!$this->isValidKey($key)){
+                // Invalid Container Key
+                throw new \Exception("Invalid Dependency / Container Key: " . $key);
+            }
+
+            // Resolve from Container
+            // If Dependency does not exist - will be saved to cache and resolved
+            return $this->container->resolve($key);
+
+        }
+
+        /**
+         * Returns all data from Registry and Container
+         *
+         * @uses MVCFrame\Foundation\ServiceRegistry->all();
+         * @uses MVCFrame\Foundation\ServiceContainer->all();
+         * @return void
+         */
+        public function all(): array{
+            return [
+                "Registry" => $this->registry->all(),
+                "Container" => $this->container->all()
+            ];
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+    }
 ?>
