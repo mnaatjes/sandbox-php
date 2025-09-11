@@ -16,6 +16,9 @@ services:
   php:
     build:
       context: ./php
+      args:
+        - UID=${UID}
+        - GID=${GID}
     volumes:
       - ./:/var/www/html
     container_name: sandbox_php
@@ -59,7 +62,7 @@ services:
     volumes:
       - ./:/app
     command: >
-      sh -c "npm install -g sass && sass --watch scss:public/css"
+      sh -c "npm install -g sass && sass --watch scss:skeleton/public/css"
 
 volumes:
   mysql_data:

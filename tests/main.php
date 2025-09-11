@@ -1,106 +1,86 @@
 <?php
-    
+
+    use MVCFrame\Tests\Classes\Pizza;
+    use MVCFrame\FileSystem\Path;
+use MVCFrame\Tests\Classes\FailSon;
+use MVCFrame\Tests\Classes\MagicEightball;
+use MVCFrame\Tests\Classes\Vacuum;
+use MVCFrame\Tests\Classes\SovietCarWash;
+use MVCFrame\Tests\Turducken\Turkey;
+
     // Include autoloader
     require_once(__DIR__ . '/../vendor/autoload.php');
 
-    //use MVCFrame\Tests\Classes\TestApplication;
-    use MVCFrame\Tests\Cars\Toyota;
-    use MVCFrame\Tests\Cars\Volvo;
-    use MVCFrame\Tests\CarFactory;
-    use MVCFrame\Tests\Classes\Pizza as ConcretePizza;
-    use MVCFrame\Tests\Fascades\Pizza;
-    use MVCFrame\ServiceContainer\Container;
-    use MVCFrame\Tests\Classes\InstanceCounter;
-    use MVCFrame\Tests\Classes\Singleton;
-    use MVCFrame\Tests\Classes\Vacuum;
-    use MVCFrame\Tests\Classes\MagicEightball;
-    use MVCFrame\Tests\Classes\FailSon;
-    use MVCFrame\Tests\Turducken\Turkey;
+    // Require bootstrap/app.php
+    require_once(__DIR__ . '/bootstrap/app.php');
+    
+    $alias = "config.mixed";
+    
+    //var_dump("Has: " . ($app->has($alias) === true ? "Yes" : "No"));
 
-    // Debugging
-    //$app = new TestApplication();
-
-    /** 
-     * Helper function
-     * @param string $type
+    /**
+     * Array of strings, arrays, and various functions, classes, etc
+     * @var array $mixedTypes
      */
-    function dealership($args=""){
-        // Declare factory
-        $factory = new CarFactory();
+    $mixedTypes = [
+        // The final array containing various data types
 
-        // Return factory
-        if(func_num_args() === 0){
-            return $factory;
-        }
+        // A string literal
+        'string_element' => 'Hello, World!',
 
-        // Return and call
-        return $factory->alert($args);
+        // An indexed array
+        'array_element' => [1, 'two', 3.0],
 
-    }
+        // An object literal (instance of stdClass)
+        'object_element' => (object) [
+            'id' => 123,
+            'status' => 'active'
+        ],
 
-    //dealership()->toyota(["camry", "yaris"]);
-    //dealership(["99", "98", "97"]);
-    
+        // A Closure (an anonymous function that can be stored in a variable)
+        'closure_element' => function ($a, $b) {
+            return $a + $b;
+        },
 
-    //Container::getInstance()->bind(ConcretePizza::class, function(){return new ConcretePizza();});
+        // reference to callable function
+        "trim",
 
-    //Pizza::withCheese();
-    //Pizza::bake();
-    
-    // Instance Debugging
-    //app(InstanceCounter::class, function(){return new InstanceCounter();});
-    app(ConcretePizza::class, function(){return new ConcretePizza();});
-    app()->singleton(InstanceCounter::class, function(){return new InstanceCounter();});
-    app()->singleton(Singleton::class, function(){return Singleton::getInstance();});
+        // reference to class name
+        \MVCFrame\Tests\Cars\Toyota::class,
 
-    $instances = [
-        app(InstanceCounter::class),
-        app(InstanceCounter::class),
-        app(InstanceCounter::class),
-        app(InstanceCounter::class),
-        app(InstanceCounter::class),
-        app(InstanceCounter::class),
-        app(InstanceCounter::class),
-        app(InstanceCounter::class),
-        app(Singleton::class),
-        app(Singleton::class),
-        app(Singleton::class),
-        app(Singleton::class),
-        app(Singleton::class),
+        // int value
+        12,
+
+        // object
+        \MVCFrame\FileSystem\Path::create("/"),
+
+        // array 
+        [1, 2, 3, 4],
+
+        // An anonymous function (syntactically the same as a closure in this context)
+        'anonymous_function_element' => function () {
+            return date('Y-m-d');
+        },
+
+        // An instance of a named class
+        'class_instance_element' => new Pizza(),
+
+        // A fully qualified class name as a string using the ::class constant
+        'class_name_element' => new \MVCFrame\Tests\Classes\MagicEightball(),
+
+        // An instance of an anonymous class (available since PHP 7)
+        'anonymous_class_element' => new class {
+            private $message = 'This is from an anonymous class.';
+
+            public function getMessage(): string
+            {
+                return $this->message;
+            }
+        },
+
+        "last"
     ];
 
-    foreach($instances as $instance){
-        //$instance->countOff();
-    }
-
-    //$hoover     = new Vacuum("wool", "bags", "kitty litter");
-    //$bisel      = new Vacuum("poop", "hair", "food");
-
-    /*
-    app(Vacuum::class, function($app){
-        return new Vacuum(
-            $app->resolve(InstanceCounter::class),
-            $app->resolve(Singleton::class),
-            $app->resolve(ConcretePizza::class)
-        );
-    });
-    */
-
-    //var_dump(app(Vacuum::class)->emptyBag());
-
-    //app(\MVCFrame\Tests\Classes\SovietCarWash::class);
-    //app(\MVCFrame\Tests\Classes\Vacuum::class);
-    //app(\MVCFrame\Tests\Classes\MagicEightball::class);
-    //app(\MVCFrame\Tests\Cars\Lada::class);
-    //app(\MVCFrame\Tests\Classes\FailSon::class);
-    /*
-    $turkey = app(Turkey::class);
-    $turkey->yesChef();
-    $turkey->duck->chicken->vocalize();
-    $turkey->duck->chicken->getTemp();
-    */
-    //app()->debugCache();
-
-    
-    //app(String::class);
+    // Debugging
+    var_dump($app->all());
 ?>
