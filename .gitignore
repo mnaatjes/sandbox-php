@@ -1,2 +1,6 @@
 # Composer
 vendor/
+
+# Generated CSS
+skeleton/public/css/main.css
+skeleton/public/css/main.css.map
