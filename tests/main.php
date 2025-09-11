@@ -82,16 +82,5 @@ use MVCFrame\Tests\Turducken\Turkey;
     ];
 
     // Debugging
-    /*
-    $app->add("hello", function(){});
-    $app->set("hello", function(){});
-    $app->add("path.config", Path::create('/path/to/dir'));
-    $app->add("pathObject", function(){return Path::create("/some/path");});
-    $app->share(Vacuum::class, function(){return new Vacuum("stuff");});
-    */
-    //$app->share(SovietCarWash::class, SovietCarWash::class);
-    //$result = $app->get(SovietCarWash::class);
-    $result = $app->get(Turkey::class);
-    //var_dump($app->all());
-    //var_dump($result);
+    var_dump($app->all());
 ?>

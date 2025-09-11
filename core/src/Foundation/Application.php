@@ -26,13 +26,6 @@
          */
         private static ?Application $instance;
 
-        /**
-         * Base Path of Environment
-         *
-         * @var Path|null
-         */
-        private ?Path $basepath;
-
         private ?ServiceContainer $container;
 
         private ?ServiceRegistry $registry;
@@ -60,9 +53,9 @@
             // Validate Basepath
             // Create Path instance
             // Check exists
-            $this->basepath = Path::create($base_path);
-            if(!$this->basepath->exists()){
-                throw new \Exception("Base path: " .(string)$this->basepath. " does NOT exist!");
+            $basepath = Path::create($base_path);
+            if(!$basepath->exists()){
+                throw new \Exception("Base path: " .(string)$basepath. " does NOT exist!");
             }
 
             // Create Registry Instance
@@ -70,6 +63,11 @@
 
             // Create Container Instance
             $this->container = ServiceContainer::getInstance($this);
+
+            // Self-Orient and Map Filepaths
+            $filepaths = $this->mapFilepaths($basepath);
+            // Load Configuration Files
+
             
         }
         
@@ -89,22 +87,16 @@
 			return self::$instance;
         }
 
-        private function selfOrient(?Path $basePath){
+        /**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        private function mapFilepaths(?Path $basePath){
+            // Determine Environment from basepath
+            $env = $basePath->getBasename() === "tests" ? "dev" : "production";
+
 			// Configurate Base Paths
 			foreach(self::REQUIRED_DIR as $key => $dir){
-				// Determine Environment of Framework
-                /*
-				if($env === "dev"){
-					// Framework in Development Environment
-					// Combine and instantiate path
-					$path = Path::create(
-						$this->rootDir . $dir[$env]
-					);
-
-					// Register paths
-					$this->register("base", $key, $path);
-				}
-                */
+                // Bind paths to Registry based on environment
+                $this->set("path." . $key, $dir[$env]);
 			}
         }
 
@@ -282,6 +274,14 @@
             }
         }
 
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Retrieve value from Registry or Container based on key
+         *
+         * @param string $key
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
         public function get(string $key){
             // Check Registry
             if($this->registry->has($key)){
@@ -303,6 +303,7 @@
 
         }
 
+        /**-------------------------------------------------------------------------*/
         /**
          * Returns all data from Registry and Container
          *
@@ -310,6 +311,7 @@
          * @uses MVCFrame\Foundation\ServiceContainer->all();
          * @return void
          */
+        /**-------------------------------------------------------------------------*/
         public function all(): array{
             return [
                 "Registry" => $this->registry->all(),

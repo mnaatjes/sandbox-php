@@ -10,10 +10,7 @@
 
         private array $data=[];
 
-        public function __construct(?Application $application_instance){
-            // Apply application instance
-            $this->app = $application_instance;
-        }
+        public function __construct(){}
 
         /**-------------------------------------------------------------------------*/
         /**
@@ -22,10 +19,10 @@
          * @return void
          */
         /**-------------------------------------------------------------------------*/
-        public static function getInstance(?Application $application_instance){
+        public static function getInstance(){
 			// Check if already declared
 			if(!isset(self::$instance)){
-				self::$instance = new ServiceRegistry($application_instance);
+				self::$instance = new ServiceRegistry();
 			}
 			// Return instance
 			return self::$instance;
