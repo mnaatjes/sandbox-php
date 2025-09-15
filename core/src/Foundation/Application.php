@@ -2,25 +2,12 @@
 
     namespace MVCFrame\Foundation;
     use MVCFrame\FileSystem\Path;
+    use MVCFrame\FileSystem\File;
+    use MVCFrame\FileSystem\FileSystem;
     use MVCFrame\Support\DotEnv;
+    use MVCFrame\Support\Config;
 
     class Application {
-
-		/**
-		 * Required Directories assoc array by environment
-		 * @var array REQUIRED_DIR
-		 */
-		private const REQUIRED_DIR=[
-			"app" 		=> "/app",
-			"bootstrap" => "/bootstrap",
-			"config" 	=> "/config",
-			"database" 	=> "/database",
-            "env"       => "/.env",
-			"public" 	=> "/public",
-			"resource" 	=> "/resources",
-			"routes"	=> "/routes",
-			"storage" 	=> "/storage",
-		];
 
         /**
          * Application Instance
@@ -33,7 +20,11 @@
 
         private ?ServiceRegistry $registry;
 
+        private ?FileSystem $files;
+
         private ?DotEnv $env;
+
+        private ?Config $config;
 
         /**-------------------------------------------------------------------------*/
         /**
@@ -55,28 +46,26 @@
             // Set instance
             self::$instance = $this;
 
-            // Validate Basepath
-            // Create Path instance
-            // Check exists
-            $basepath = Path::create($base_path);
-            if(!$basepath->exists()){
-                throw new \Exception("Base path: " .(string)$basepath. " does NOT exist!");
-            }
-
             // Create Registry Instance
-            $this->registry = ServiceRegistry::getInstance($this);
+            $this->registry = ServiceRegistry::getInstance();
+
+            // Create Instance of FileSystem
+            // Verify Files
+            // Self-Orient Application
+            // Register filesystem properties
+            $this->files = new FileSystem($base_path);
+            //path("config.name", Path::create("/path/to/path"));
+
+            // Create DotEnv Instance
+            // DotEnv loads and registers on instantiation
+            //$this->env = new DotEnv(reg("path.env"));
+
+            // Create Config Instance
+            // Load Configurations and Register
+            //$this->config = Config::getInstance();
 
             // Create Container Instance
-            $this->container = ServiceContainer::getInstance($this);
-
-            // Self-Orient and Register Filepaths
-            $this->registerFilepaths($basepath);
-
-            // Load Environmental Variables into Registry
-            $this->loadEnvVars($this->get("path.env"));
-
-            // Load Configurations
-            //\env();
+            //$this->container = ServiceContainer::getInstance();
         }
         
         /**-------------------------------------------------------------------------*/
@@ -103,7 +92,7 @@
          * @return void
          */
         /**-------------------------------------------------------------------------*/
-        private function loadEnvVars(Path $env_path){
+        private function registerEnvVars(Path $env_path){
             // Validate is file
             if(!$env_path->isFile()){
                 // Unable to load file
@@ -113,10 +102,10 @@
 
             // Create DotEnv Instance
             // Loads env variables
-            $this->env = new DotEnv($env_path);
+            
 
             // Cache Env Variables
-            foreach($this->env->getAll() as $key => $value){
+            foreach($this->env->all() as $key => $value){
                 // Register variables
                 $this->set("config." . $key, $value);
             }
@@ -134,7 +123,7 @@
             $this->set("path.base", $basePath);
 
 			// Configurate Base Paths
-			foreach(self::REQUIRED_DIR as $key => $dir){
+			foreach([] as $key => $dir){
                 // Join Paths
                 $target = Path::join($basePath, Path::create($dir));
 

@@ -48,6 +48,9 @@
 
             // Load ENV Variables
             $this->load();
+
+            // Register ENV Variables
+            $this->register();
         }
 
         /**-------------------------------------------------------------------------*/
@@ -76,8 +79,7 @@
          * @throws \RuntimeException if .env file not readable
          */
         /**-------------------------------------------------------------------------*/
-        public function load(): void
-        {
+        private function load(): void{
             /**
              * Open file and load lines into array
              * @var array $lines
@@ -141,6 +143,17 @@
             }
         }
 
+        /**-------------------------------------------------------------------------*/
+        /**-------------------------------------------------------------------------*/
+        private function register(){
+            // Register ENV variables in Configuration sub-array of ServiceRegistry
+            foreach($this->all() as $key => $value){
+                // Stores with alias: "config.<key>"
+                conf($key, $value);
+            }
+
+        }
+        /**-------------------------------------------------------------------------*/
         /**
          * Add/update an environment variable.
          *
@@ -148,46 +161,54 @@
          * @param mixed $value
          * @return void
          */
+        /**-------------------------------------------------------------------------*/
         public function add(string $key, $value): void
         {
+            // Normalize key and put values
             $key = trim($key);
             if (is_string($value)) {
                 putenv(sprintf('%s=%s', $key, $value));
             }
-            $_ENV[$key] = $value;
-            $_SERVER[$key] = $value;
 
+            // Set values in $_ENV and $_SERVER
+            $_ENV[$key]     = $value;
+            $_SERVER[$key]  = $value;
+
+            // Update Loaded Keys
             if (!in_array($key, $this->loadedKeys)) {
                 $this->loadedKeys[] = $key;
             }
         }
 
+        /**-------------------------------------------------------------------------*/
         /**
          * Remove an environment variable.
          *
          * @param string $key
          * @return void
          */
-        public function remove(string $key): void
-        {
+        /**-------------------------------------------------------------------------*/
+        public function remove(string $key): void{
             if ($this->has($key)) {
                 unset($_ENV[$key]);
                 unset($_SERVER[$key]);
                 putenv($key);
                 
+                // Update Array Keys
                 $this->loadedKeys = array_values(array_filter($this->loadedKeys, function($k) use ($key) {
                     return $k !== $key;
                 }));
             }
         }
 
+        /**-------------------------------------------------------------------------*/
         /**
          * Clear all loaded environment variables.
          *
          * @return void
          */
-        public function clear(): void
-        {
+        /**-------------------------------------------------------------------------*/
+        public function clear(): void{
             foreach ($this->loadedKeys as $key) {
                 unset($_ENV[$key]);
                 unset($_SERVER[$key]);
@@ -196,17 +217,19 @@
             $this->loadedKeys = [];
         }
 
+        /**-------------------------------------------------------------------------*/
         /**
          * Check if an environment variable exists.
          *
          * @param string $key
          * @return boolean
          */
-        public function has(string $key): bool
-        {
+        /**-------------------------------------------------------------------------*/
+        public function has(string $key): bool{
             return array_key_exists($key, $_ENV);
         }
 
+        /**-------------------------------------------------------------------------*/
         /**
          * Get an environment variable.
          *
@@ -214,34 +237,22 @@
          * @param mixed $default
          * @return mixed
          */
+        /**-------------------------------------------------------------------------*/
         public function get(string $key, $default = null){
             return $_ENV[$key] ?? $default;
         }
 
-        public function getKeys(){
-            return $this->loadedKeys;
-        }
-
-        public function getValues(){
-            return array_map(function($key){
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Return assoc array of Key => Value pairs of ENV variables
+         *
+         * @return array
+         */
+        /**-------------------------------------------------------------------------*/
+        public function all(): array{
+            return array_combine($this->loadedKeys, array_map(function($key){
                 return $this->get($key);
-            }, $this->loadedKeys);
-        }
-
-        public function showKeys(){
-            var_dump($this->getKeys());
-        }
-
-        public function showValues(){
-            var_dump($this->getValues());
-        }
-
-        public function getAll(){
-            return array_combine($this->getKeys(), $this->getValues());
-        }
-
-        public function showAll(){
-            var_dump($this->getAll());
+            }, $this->loadedKeys));
         }
     }
 

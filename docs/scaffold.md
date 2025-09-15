@@ -93,3 +93,13 @@ The command you need uses the -it flags to get an interactive terminal (a shell)
     - **-t (tty):** Allocates a terminal, making it look and feel like a real shell.
 - **sandbox_php:** The name of the container you want to enter.
 - **bash:** The program you want to run inside the container (in this case, the bash shell).
+
+### 4.0 Composer
+
+#### 4.1 Refreshing Skeleton via symlink
+
+1. Make changes to `/core/composer.json` and save
+2. Update auto-loader in mvc-framework: `composer dump-autoload` in core/
+3. Move skeleton/ `cd ../skeleton`
+4. Update skeleton/composer.json: `composer mnaatjes/mvc-framework`
+5. Dump autoloader in skeleton/ `composer dump-autoload`

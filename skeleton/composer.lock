@@ -8,11 +8,11 @@
     "packages": [
         {
             "name": "mnaatjes/mvc-framework",
-            "version": "dev-feat/env",
+            "version": "dev-feat/config",
             "dist": {
                 "type": "path",
                 "url": "../core",
-                "reference": "99c5aa1fb422830afa81a2f141e6691c3227cd0f"
+                "reference": "c5e454d65ca973d2f6fdd3140029064fdb3385ce"
             },
             "require": {
                 "php": ">=8.1"
@@ -26,7 +26,10 @@
                     "MVCFrame\\": "src/"
                 },
                 "files": [
-                    "src/Helpers/env.php"
+                    "src/Helpers/env.php",
+                    "src/Helpers/conf.php",
+                    "src/Helpers/reg.php",
+                    "src/Helpers/path.php"
                 ]
             },
             "autoload-dev": {
