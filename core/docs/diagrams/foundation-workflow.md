@@ -6,6 +6,7 @@ This document outlines the architecture and interaction of the core foundation c
 
 This diagram shows the properties, methods, and relationships between the core classes.
 
+### 1.1 Application Structure
 ```mermaid
 classDiagram
     class Application {
@@ -48,6 +49,16 @@ classDiagram
     Application "1" *-- "1" ServiceRegistry : manages
 ```
 
+### 1.2 DotEnv
+
+```mermaid
+classDiagram
+    class DotEnv {
+        <<Service>>
+        
+    }
+```
+
 ## 2. Organizational Charts
 
 This chart illustrates the ownership and instantiation hierarchy. The `Application` class is the entry point and is responsible for creating and managing the container and registry instances.
@@ -59,6 +70,8 @@ graph TD
 ```
 
 ## 3. Sequence Diagrams
+
+### 3.1 Instantiation Phase
 
 This diagram shows the typical sequence of events during application boot-up and when resolving a service from the container.
 
@@ -90,4 +103,15 @@ sequenceDiagram
     deactivate Container
     App-->>Client: myServiceInstance
     deactivate App
+```
+
+### 3.2 Configuration Phase
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Container as ServiceContainer
+    participant Registry as ServiceRegistry
+    participant env as DotEnv
+
 ```

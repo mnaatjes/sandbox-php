@@ -16,6 +16,7 @@
                 "ms-vscode-remote.remote-containers",
                 "bpruitt-goddard.mermaid-markdown-syntax-highlighting",
                 "bmewburn.vscode-intelephense-client",
+                "neilbrayfield.php-docblocker"
             ]
         }
     }

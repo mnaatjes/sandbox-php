@@ -2,21 +2,24 @@
 
     namespace MVCFrame\Foundation;
     use MVCFrame\FileSystem\Path;
+    use MVCFrame\Support\DotEnv;
 
     class Application {
 
 		/**
 		 * Required Directories assoc array by environment
-		 * @var const REQUIRED_DIR
+		 * @var array REQUIRED_DIR
 		 */
 		private const REQUIRED_DIR=[
-			"app" 		=> ["dev" => "", "production" => "/app"],
-			"config" 	=> ["dev" => "/bootstrap", "production" => "/config"],
-			"database" 	=> ["dev" => "/db", "production" => "/database"],
-			"public" 	=> ["dev" => "/../public", "production" => "/public"],
-			"storage" 	=> ["dev" => "/storage", "production" => "/storage"],
-			"resource" 	=> ["dev" => "/resources", "production" => "/resources"],
-			"routes"	=> ["dev" => "/routes", "production" => "/routes"],
+			"app" 		=> "/app",
+			"bootstrap" => "/bootstrap",
+			"config" 	=> "/config",
+			"database" 	=> "/database",
+            "env"       => "/.env",
+			"public" 	=> "/public",
+			"resource" 	=> "/resources",
+			"routes"	=> "/routes",
+			"storage" 	=> "/storage",
 		];
 
         /**
@@ -29,6 +32,8 @@
         private ?ServiceContainer $container;
 
         private ?ServiceRegistry $registry;
+
+        private ?DotEnv $env;
 
         /**-------------------------------------------------------------------------*/
         /**
@@ -64,11 +69,14 @@
             // Create Container Instance
             $this->container = ServiceContainer::getInstance($this);
 
-            // Self-Orient and Map Filepaths
-            $filepaths = $this->mapFilepaths($basepath);
-            // Load Configuration Files
+            // Self-Orient and Register Filepaths
+            $this->registerFilepaths($basepath);
 
-            
+            // Load Environmental Variables into Registry
+            $this->loadEnvVars($this->get("path.env"));
+
+            // Load Configurations
+            //\env();
         }
         
         /**-------------------------------------------------------------------------*/
@@ -88,15 +96,57 @@
         }
 
         /**-------------------------------------------------------------------------*/
+        /**
+         * Load environmental variables from .env file by instantiating DotEnv Class
+         *
+         * @param Path $env_path
+         * @return void
+         */
         /**-------------------------------------------------------------------------*/
-        private function mapFilepaths(?Path $basePath){
-            // Determine Environment from basepath
-            $env = $basePath->getBasename() === "tests" ? "dev" : "production";
+        private function loadEnvVars(Path $env_path){
+            // Validate is file
+            if(!$env_path->isFile()){
+                // Unable to load file
+                // Path does not point to file
+                throw new \Exception("Filepath: " . (string)$env_path . "does not point to .env file!");
+            }
+
+            // Create DotEnv Instance
+            // Loads env variables
+            $this->env = new DotEnv($env_path);
+
+            // Cache Env Variables
+            foreach($this->env->getAll() as $key => $value){
+                // Register variables
+                $this->set("config." . $key, $value);
+            }
+        }
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Register all filepaths and verify they exist
+         *
+         * @param Path|null $basePath
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
+        private function registerFilepaths(?Path $basePath){
+            // Register Basepath
+            $this->set("path.base", $basePath);
 
 			// Configurate Base Paths
 			foreach(self::REQUIRED_DIR as $key => $dir){
+                // Join Paths
+                $target = Path::join($basePath, Path::create($dir));
+
+                // Verify Path Exists
+                if(!$target->exists()){
+                    // Path not created
+                    // Instruct user to create
+                    throw new \Exception("Path does NOT exist. Please create directory: " . (string)$target);
+                }
+
                 // Bind paths to Registry based on environment
-                $this->set("path." . $key, $dir[$env]);
+                $this->set("path." . $key, $target);
 			}
         }
 

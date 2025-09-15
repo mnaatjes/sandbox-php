@@ -20,6 +20,7 @@
             "MVCFrame\\": "src/"
         },
         "files": [
+            "src/Helpers/env.php"
         ]
     },
     "autoload-dev": {

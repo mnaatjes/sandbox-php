@@ -28,9 +28,6 @@ This is the Core of the MVC Framework
 - [ ] **bootedCallbacks** - Array that holds any closures or actions that need to be when `$booted = true`
 - [ ] **booted** - Boolean value indicating that all ServiceProviders have been booted
 
-**MVCFramework Variables**
-- [ ] **MCV_TYPE** String with possible values: `local`, `production`, `dev`
-
 **Environmental Variables**
 - [ ] **ENV_TYPE** - String with possible values: `local`, `production`, `dev`
 - [ ] **ENV_FILEPATH** - ??

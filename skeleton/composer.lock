@@ -8,11 +8,11 @@
     "packages": [
         {
             "name": "mnaatjes/mvc-framework",
-            "version": "dev-main",
+            "version": "dev-feat/env",
             "dist": {
                 "type": "path",
                 "url": "../core",
-                "reference": "9816c1451e6462da003c838b4e843b6f857850ed"
+                "reference": "99c5aa1fb422830afa81a2f141e6691c3227cd0f"
             },
             "require": {
                 "php": ">=8.1"
@@ -25,7 +25,9 @@
                 "psr-4": {
                     "MVCFrame\\": "src/"
                 },
-                "files": []
+                "files": [
+                    "src/Helpers/env.php"
+                ]
             },
             "autoload-dev": {
                 "psr-4": {

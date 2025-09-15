@@ -2,7 +2,7 @@
     /**
      * Declare Namespace
      */
-    namespace MVCFrame\FileSystem;
+    namespace MVCFrame\Support;
     use MVCFrame\FileSystem\Path;
     
     /**
@@ -13,6 +13,8 @@
      * - Created
      */
     class DotEnv {
+
+        private static ?DotEnv $instance;
 
         /**
          * Filepath to .env file
@@ -27,13 +29,43 @@
         protected array $loadedKeys = [];
 
         /**-------------------------------------------------------------------------*/
-
+        /**
+         * Constructor for DotEnv Class
+         */
         /**-------------------------------------------------------------------------*/
         public function __construct(?Path $env_path=NULL){
-            $this->path = is_null($env_path) ? path("base.config.env") : $env_path;
+            // Check Instance
+            if(isset(self::$instance)){
+                // Class already Instantiated
+                throw new \Exception("A DotEnv instance has already been created. Unable to create another. To use, see: DotEnv::getInstance()");
+            }
+
+            // Set Instance
+            self::$instance = $this;
+
+            // Set default path
+            $this->path = is_null($env_path) ? Path::create("base.config.env") : $env_path;
 
             // Load ENV Variables
             $this->load();
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Finds and returns existing instance
+         *
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
+        public static function getInstance(){
+			// Check if already declared
+			if(is_null(self::$instance)){
+                // Check for path parameter
+                // Throw Exception
+				throw new \Exception("DotEnv has NOT been properly instantiated!");
+			}
+			// Return instance
+			return self::$instance;
         }
 
         /**-------------------------------------------------------------------------*/
@@ -182,8 +214,7 @@
          * @param mixed $default
          * @return mixed
          */
-        public function get(string $key, $default = null)
-        {
+        public function get(string $key, $default = null){
             return $_ENV[$key] ?? $default;
         }
 
