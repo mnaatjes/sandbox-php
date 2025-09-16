@@ -4,9 +4,11 @@
     use MVCFrame\FileSystem\File;
     use MVCFrame\FileSystem\Path;
     use MVCFrame\Foundation\ServiceRegistry;
+use PDO;
 
     class FileSystem {
 
+        private ?ServiceRegistry $registry;
         private static $instance;
         private ?Path $basePath;
 
@@ -42,21 +44,29 @@
          * @param string $base_path
          */
         /**-------------------------------------------------------------------------*/
-        public function __construct(?string $base_path=NULL){
+        public function __construct(string|Path|Directory $base_path, ?ServiceRegistry $service_registry){
             // Register instance
             self::$instance = $this;
 
             // Create path instance of basepath string
-            $this->basePath = Path::create($base_path);
+            $this->basePath = is_string($base_path) ? Path::create($base_path) : $base_path;
+
+            // Assign Registry
+            $this->registry = $service_registry;
+
+            // Register base path
+            $this->registerPath("base", $this->basePath);
 
             // Verify basepath Exists
             if(!$this->basePath->exists()){
                 throw new \Exception("Base path: " .(string)$this->basePath. " does NOT exist!");
             }
 
-            // register major filepaths
-            $this->register();
-
+            // Register Framework Filepath Dependencies
+            $this->registerFrameworkPaths();
+            
+            // Register Application Filepaths
+            $this->registerApplicationPaths();
         }
         /**-------------------------------------------------------------------------*/
         /**
@@ -81,21 +91,55 @@
         }
         /**-------------------------------------------------------------------------*/
         /**
-         * Registers Framework and Application paths with ServiceRegistry
+         * Validates and Registers Framework Dependent Filepaths
          *
          * @return void
          */
         /**-------------------------------------------------------------------------*/
-        private function register(){
+        private function registerFrameworkPaths(): void{
             // Load Default Filepaths
             foreach(self::FRAME_DIR as $key => $default){
-                // Assign target
-                $target = Path::join($this->basePath, Path::create("/vendor/mnaatjes/mvc-framework/src" . $default));
+                // Assign path
+                $path = Path::join($this->basePath, Path::create("/vendor/mnaatjes/mvc-framework/src" . $default));
+
+                // Verify Existance
+                if(!$path->exists()){
+                    // Path does not exist
+                    throw new \Exception("Path: " . (string)$path . " does NOT exist!");
+                }
+
+                // Determine prefix and normalize alias
+                $alias = $this->normalize($key, $this->determinePrefix($path));
                 
-                // Check if file
-                var_dump($target->isFile());
-                $target->isFile() ? File::create((string)$target) : $target;
-                var_dump(get_class($target));
+                // Store in Registry
+                $this->registerPath($alias, $path);
+            }
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Verifies and registers Application Dependent Filepaths
+         *
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
+        private function registerApplicationPaths(): void{
+            // Load Application Files
+            // Overwrites defaults if conflict
+            foreach(self::APP_DIR as $key=>$dir){
+                $path = Path::join($this->basePath, Path::create($dir));
+                
+                // Verify Existance
+                if(!$path->exists()){
+                    // Path does not exist
+                    throw new \Exception("Path: " . (string)$path . " does NOT exist!");
+                }
+
+                // Determine prefix and normalize alias
+                $alias = $this->normalize($key, $this->determinePrefix($path));
+
+                // Store in Registry
+                $this->registerPath($alias, $path);
             }
         }
 
@@ -108,46 +152,67 @@
          * @return string
          */
         /**-------------------------------------------------------------------------*/
-        private function normalize(string $alias, string $type): string{
-            // Check if first key matches $type
-            $prefix = substr($alias, 0, strlen($type));
-            if($prefix !== $type){
-                // Alias does not begin with type
-                $result = $type . "." . $alias;
-            } else if(strpos($alias, ".") !== strlen($type)){
-                $result = substr($alias, 0, strlen($type)) . "." . substr($alias, strlen($type));
+        private function normalize(string $alias, string $prefix): string{
+            // Ensure "Config" not prepended
+            if(!str_starts_with($alias, $prefix)){
+                // Prepend config. to alias
+                return $prefix . "." . $alias;
+
+            } else if(strpos($alias, ".") !== strlen($prefix)){
+                // Period missing after config
+                // Inject period
+                return substr($alias, 0, strlen($prefix)) . "." . substr($alias, strlen($prefix));
+                
             } else {
-                $result = $alias;
+                // Alias properly formatted going in
+                return $alias;
+            }
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Determine type of $value and return proper alias prefix
+         *
+         * @param [type] $value
+         * @return string
+         */
+        /**-------------------------------------------------------------------------*/
+        private function determinePrefix($value): string{
+            // Determine fail condition: not string or object
+            if(!is_string($value) && !is_object($value)){
+                throw new \Exception("Unable to determine path prefix!");
             }
 
-            // Return result
-            return $result;
+            // Check if string
+            if(is_string($value)){
+                // Value is sting
+                // Render $value as path object
+                $value = Path::create($value);
+            }
 
+            // Evaluate Object type
+            if($value instanceof Directory){
+                return "dir";
+            } else if($value instanceof File){
+                return "file";
+            } else if($value instanceof Path){
+                return "path";
+            } else {
+                // Cannot resolve prefix
+                throw new \Exception("Unable to determine path prefix!");
+            }
         }
+
         /**-------------------------------------------------------------------------*/
         /**
          * Returns path or file from alias
          *
+         * @uses reg() ServiceRegistry helper function
          * @param string $alias
          * @return mixed
          */
         /**-------------------------------------------------------------------------*/
-        public function get(string $alias){
-            // Check for first period
-            if(substr($alias, 0, 4) !== "file" && substr($alias, 0, 4) !== "path"){
-                // Missing prefix key to alias
-                // Throw Exception
-                throw new \Exception("Must include prefix 'file.' or 'path.' in alias!");
-
-            } else if(strpos($alias, ".") !== 4){
-                // Prefix key exists
-                // Period Missing
-                $alias = substr($alias, 0, 4) . "." . substr($alias, 4);
-            }
-
-            // return registry get
-            reg($alias);
-        }
+        public function getPath(string $alias){return $this->registry->lookup($alias);}
         
         /**-------------------------------------------------------------------------*/
         /**
@@ -158,33 +223,14 @@
          * @return void
          */
         /**-------------------------------------------------------------------------*/
-        public function set(string $alias, string|Path|File $value): void{
-            // Declare type
-            $type = NULL;
+        public function registerpath(string $alias, string|Path|File $value): void{
 
-            // Determine Type
-            if(is_string($value)){
-                // Raw path or file value
-                // Determine tupe
-                $type = strrpos($value, ".") ? "file" : "path";
-
-            } else if(is_object($value)){
-                // Get type from class name
-                $is_a = get_class($value);
-                $last = strrpos($is_a, "/");
-                $type = ($last !== false) ? strtolower(substr($is_a, $last + 1)) : NULL;
-            }
-
-            // Ensure type is no longer null
-            if(is_null($type)){
-                throw new \Exception("Unable to resolve Path or File instance!");
-            }
 
             // Check and Normalize Alias
-            $alias = $this->normalize($alias, $type);
+            $alias = $this->normalize($alias, $this->determinePrefix($value));
 
             // Register
-            reg($alias, $value);
+            $this->registry->register($alias, $value);
         }
 
         /**-------------------------------------------------------------------------*/
@@ -195,12 +241,64 @@
          */
         /**-------------------------------------------------------------------------*/
         public function all():array{
-            $registry = reg()->all();
+            // Pull registry data
+            $registry = $this->registry->all();
+
             // Pull all properties under "config" array
             return [
-                "path" => array_key_exists("path", $registry) ? $registry["path"] : [], 
-                "file" => array_key_exists("file", $registry) ? $registry["file"] : [], 
+                "path"  => array_key_exists("path", $registry) ? $registry["path"] : [],
+                "dir"   => array_key_exists("file", $registry) ? $registry["dir"] : [],
+                "file"  => array_key_exists("file", $registry) ? $registry["file"] : []
             ];
+        }
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Array of alias => path (string) pairs
+         *
+         * @return array
+         */
+        /**-------------------------------------------------------------------------*/
+        public function list(): array{return $this->flatten();}
+
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Flattens ServiceRegistry keys: path, dir, file into alias=>value(string) array
+         *
+         * @param array|null $arr
+         * @param string $prefix
+         * @return array
+         */
+        /**-------------------------------------------------------------------------*/
+        private function flatten(?array $arr=NULL, string $prefix=""): array{
+            // Declare accumulator
+            $acc = [];
+
+            // Determine if array is null
+            // Populate with data from registry if null
+            $arr = is_null($arr) ? $this->all() : $arr;
+
+            // Loop and Flatten
+            foreach($arr as $key=>$value){
+                // Current alias
+                $curr = !empty($prefix) ? $prefix . "." . $key : $key;
+
+                // If the value is an array & not empty --> flatten again
+                if(is_array($value) && !empty($value)){
+                    // Recurse
+                    // Merge Results
+                    $acc = array_merge($acc, $this->flatten($value, $curr));
+                } else {
+                    // Skip values not dot-notation
+                    if(strpos($curr, ".") === false){
+                        continue;
+                    }
+                    // Otherwise value scalar or empty array
+                    $acc[$curr] = is_object($value) ? (string)$value : $value;
+                }
+            }
+            // Return flattened acc array
+            return $acc;
         }
     }
 

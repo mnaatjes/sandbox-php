@@ -128,7 +128,6 @@
                 // Reference deeper level
                 $temp = &$temp[$key];
             }
-
             // Loop Complete
             // Temp at value
             // Return temp reference to value

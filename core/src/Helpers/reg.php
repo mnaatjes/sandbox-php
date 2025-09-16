@@ -10,6 +10,7 @@
 
             // Determine output given number of arguments
             switch(func_num_args()){
+                // Case: Two Arguments
                 case 2:
                     // Check if string
                     if(!is_string($args[0])){

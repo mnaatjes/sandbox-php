@@ -1,27 +1,35 @@
 <?php
 
 	namespace MVCFrame\FileSystem;
+	use MVCFrame\FileSystem\Directory;
+	use MVCFrame\FileSystem\File;
 
 	class Path {
 
-		private readonly ?string $path;
-		private ?string $type;
+		protected readonly ?string $pathName;
 
 		/**-------------------------------------------------------------------------*/
+		/**
+		 * Private Construct of Path: Use static Path:Create
+		 *
+		 * @param string $path
+		 */
 		/**-------------------------------------------------------------------------*/
-		private function __construct(string $path){
+		private function __construct(string $path_name){
 
 			// Set path property
-			$this->path = $path;
-
-			// Set type
-			$this->type = $this->isFile() ? "file" : "directory";
+			$this->pathName = $path_name;
 		}
 
 		/**-------------------------------------------------------------------------*/
+		/**
+		 * Renders string from object
+		 *
+		 * @return string
+		 */
 		/**-------------------------------------------------------------------------*/
 		public function __toString(): string{
-			return $this->path;
+			return $this->pathName;
 		}
 
 		/**-------------------------------------------------------------------------*/
@@ -35,7 +43,15 @@
 			// Normalize Path
 			$normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
 
-			// Set path
+			// Determine if File or Directory
+			if(is_file($path)){
+				return new File($path);
+			} else if(is_dir($path)){
+				return new Directory($path);
+			}
+
+			// Path is neither file or directory
+			// Return generic path
 			return new self($normalizedPath);
 		}
 
@@ -58,32 +74,55 @@
 			return self::create($joinedPath);
 		}
 
+		/**
+		 * Determines if file / dir / path exists
+		 *
+		 * @return boolean
+		 */
 		public function exists(): bool{
 			return $this->isFile() ? $this->isFile() : $this->isDir();
 		}
 
-		public function isDir(){
-			return is_dir($this->path);
-		}
+		/**
+		 * Determines if object is a directory
+		 *
+		 * @return boolean
+		 */
+		public function isDir(){return is_dir($this->pathName);}
 
-		public function isFile(){
-			return is_file($this->path);
-		}
+		/**
+		 * Determines if object is a file
+		 *
+		 * @return boolean
+		 */
+		public function isFile(){return is_file($this->pathName);}
 
-		public function isPopulated(): ?bool{
-			return $this->isDir() ? file_exists($this->path) : NULL;
-		}
+		/**
+		 * Determines if object is populated
+		 *
+		 * @return boolean|null
+		 */
+		public function isPopulated(): ?bool{return $this->isDir() ? file_exists($this->pathName) : NULL;}
 
-		public function getParent(): self{
-			return self::create(dirname($this->path));
-		}
+		/**
+		 * Returns the parent path / dir of the current object
+		 *
+		 * @return self
+		 */
+		public function getParent(): self{return self::create(dirname($this->pathName));}
 
-		public function getBasename(): string{
-			return basename($this->path);
-		}
+		/**
+		 * Returns the base name of the current object
+		 *
+		 * @return string
+		 */
+		public function getBasename(): string{return basename($this->pathName);}
 
-		public function getType(): string{
-			return $this->type;
-		}
+		/**
+		 * Returns type defined in __construct
+		 *
+		 * @return string
+		 */
+		public function getType(): string{return $this->type;}
 	}
 ?>

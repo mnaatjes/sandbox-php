@@ -49,12 +49,11 @@
             // Create Registry Instance
             $this->registry = ServiceRegistry::getInstance();
 
-            // Create Instance of FileSystem
-            // Verify Files
-            // Self-Orient Application
-            // Register filesystem properties
-            $this->files = new FileSystem($base_path);
-            //path("config.name", Path::create("/path/to/path"));
+            // Create Instance of FileSystem:
+            // Self-Orients Application & Registers Paths
+            $this->files = new FileSystem($base_path, $this->registry);
+
+            $obj = $this->files->getPath("file.config.app")->load();
 
             // Create DotEnv Instance
             // DotEnv loads and registers on instantiation
