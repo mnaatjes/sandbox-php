@@ -247,7 +247,7 @@ use PDO;
             // Pull all properties under "config" array
             return [
                 "path"  => array_key_exists("path", $registry) ? $registry["path"] : [],
-                "dir"   => array_key_exists("file", $registry) ? $registry["dir"] : [],
+                "dir"   => array_key_exists("dir", $registry) ? $registry["dir"] : [],
                 "file"  => array_key_exists("file", $registry) ? $registry["file"] : []
             ];
         }

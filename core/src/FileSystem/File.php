@@ -29,7 +29,6 @@
 
             // Get contents and return
             return file_get_contents($this->pathName);
-
         }
 
         /**-------------------------------------------------------------------------*/
@@ -331,6 +330,14 @@
             }
         }
 
+        /**-------------------------------------------------------------------------*/
+        /**
+         * Renders an html file and replaces "{{ placeholder }}" template placeholders with data from array keys
+         *
+         * @param array $data
+         * @return void
+         */
+        /**-------------------------------------------------------------------------*/
         private function renderHTML(array $data){
             // Verify html document
             if(!$this->isHTML()){
