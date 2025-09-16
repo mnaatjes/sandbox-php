@@ -31,7 +31,8 @@
          * @var array FRAME_DIR
          */
         private const FRAME_DIR=[
-            "config"    => "/Config"
+            "config"        => "/Config",
+            "config.app"    => "/Config/app.php"
         ];
 
         /**-------------------------------------------------------------------------*/
@@ -54,7 +55,7 @@
             }
 
             // register major filepaths
-            //$this->register();
+            $this->register();
 
         }
         /**-------------------------------------------------------------------------*/
@@ -88,15 +89,26 @@
         private function register(){
             // Load Default Filepaths
             foreach(self::FRAME_DIR as $key => $default){
-                $path = Path::join($this->basePath, Path::create("/vendor/mnaatjes/mvc-framework/src" . $default));
-                var_dump((string)$path);
-                var_dump($path->exists());
+                // Assign target
+                $target = Path::join($this->basePath, Path::create("/vendor/mnaatjes/mvc-framework/src" . $default));
+                
+                // Check if file
+                var_dump($target->isFile());
+                $target->isFile() ? File::create((string)$target) : $target;
+                var_dump(get_class($target));
             }
         }
 
         /**-------------------------------------------------------------------------*/
+        /**
+         * Normalizes alias from type (file or path) and returns properly formatted alias
+         *
+         * @param string $alias
+         * @param string $type
+         * @return string
+         */
         /**-------------------------------------------------------------------------*/
-        private function normalize(string $alias, string $type){
+        private function normalize(string $alias, string $type): string{
             // Check if first key matches $type
             $prefix = substr($alias, 0, strlen($type));
             if($prefix !== $type){
@@ -113,6 +125,12 @@
 
         }
         /**-------------------------------------------------------------------------*/
+        /**
+         * Returns path or file from alias
+         *
+         * @param string $alias
+         * @return mixed
+         */
         /**-------------------------------------------------------------------------*/
         public function get(string $alias){
             // Check for first period
@@ -132,6 +150,13 @@
         }
         
         /**-------------------------------------------------------------------------*/
+        /**
+         * Registers path or file to ServiceRegistry under alias-prefix "path." or "file."
+         *
+         * @param string $alias
+         * @param string|Path|File $value
+         * @return void
+         */
         /**-------------------------------------------------------------------------*/
         public function set(string $alias, string|Path|File $value): void{
             // Declare type
@@ -163,8 +188,13 @@
         }
 
         /**-------------------------------------------------------------------------*/
+        /**
+         * Retuns array of all files and paths from ServiceRegistry
+         *
+         * @return array
+         */
         /**-------------------------------------------------------------------------*/
-        public function all(){
+        public function all():array{
             $registry = reg()->all();
             // Pull all properties under "config" array
             return [
