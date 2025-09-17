@@ -4,6 +4,18 @@
 
     class ServiceRegistry {
 
+        /**
+         * Top Level Categories used to flatten for search() method
+         * @var const CATEGORIES
+         */
+        private const CATEGORIES=[
+            "file",
+            "dir",
+            "path",
+            "config",
+            "default"
+        ];
+
         private ?Application $app;
 
         private static ?ServiceRegistry $instance;
@@ -134,6 +146,12 @@
             return $temp;
         }
 
+        public function search(string $sub_alias): array{
+
+
+            // Return Default
+            return [];
+        }
         /**-------------------------------------------------------------------------*/
         /**
          * Returns Contents of Data array

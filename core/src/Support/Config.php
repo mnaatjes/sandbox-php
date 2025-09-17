@@ -1,11 +1,15 @@
 <?php
     namespace MVCFrame\Support;
-    use MVCFrame\Foundation\ServiceRegistry;
+
+use MVCFrame\FileSystem\FileSystem;
+use MVCFrame\Foundation\ServiceRegistry;
     use MVCFrame\FileSystem\Path;
     use MVCFrame\Support\DotEnv;
 
     class Config {
 
+        private ?ServiceRegistry $registry;
+        private ?FileSystem $fileSys;
         private static ?Config $instance;
 
         /**-------------------------------------------------------------------------*/
@@ -15,9 +19,20 @@
          * @param ServiceRegistry|null $registry_instance
          */
         /**-------------------------------------------------------------------------*/
-        private function __construct(){
+        public function __construct(?ServiceRegistry $registry_instance, ?FileSystem $filesys_instance){
+            // Check instance already created
+            if(isset(self::$instance)){
+                throw new \Exception("Config instance has already been created!");
+            }
+
             // Set instance
             self::$instance = $this;
+
+            // Set Registry
+            $this->registry = $registry_instance;
+
+            // Set FileSystem
+            $this->fileSys = $filesys_instance;
 
             // Load Configuration Files
             // Register Configuration Values
@@ -37,9 +52,14 @@
                 throw new \Exception("Service Registry Instance Missing! Please Instantiate Service Registry");
             }
 
+            // Ensure FileSystem Exists
+            if(!is_a(FileSystem::getInstance(), FileSystem::class)){
+                throw new \Exception("Service Registry Instance Missing! Please Instantiate Service Registry");
+            }
+
 			// Check if already declared
 			if(!isset(self::$instance)){
-				self::$instance = new Config();
+				throw new \Exception("FileSystem must be instantiated before instance can be retrieved!");
 			}
             
 			// Return instance
@@ -49,14 +69,19 @@
         /**-------------------------------------------------------------------------*/
         /**-------------------------------------------------------------------------*/
         private function load(){
-            
-            // Get all files
+            // Load Default and Application Configuration Files
+            $defaultDir = $this->fileSys->getpath("dir.default.config");
+            $appDir     = $this->fileSys->getpath("dir.config");
 
-            // Load Default Configs
+            var_dump($defaultDir);
             
             // Load Application Configs
             // Merge values
         }
+
+        private function loadDefaultConfigs(){}
+        private function loadAppConfigs(){}
+        
         /**-------------------------------------------------------------------------*/
         /**
          * Returns all "config" sub-array values
@@ -66,7 +91,7 @@
         /**-------------------------------------------------------------------------*/
         public function all(){
             // Pull all properties under "config" array
-            return reg()->all()["config"];
+            return $this->registry->all()["config"];
         }
 
         /**-------------------------------------------------------------------------*/
@@ -83,7 +108,7 @@
             $alias = $this->normalize($alias);
 
             // Register
-            reg($alias, $value);
+            $this->registry->register($alias, $value);
         }
 
         /**-------------------------------------------------------------------------*/
@@ -99,7 +124,7 @@
             $alias = $this->normalize($alias);
 
             // Return from registry
-            return reg($alias);
+            return $this->registry->lookup($alias);
         }
 
         /**-------------------------------------------------------------------------*/

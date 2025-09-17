@@ -34,7 +34,7 @@ use PDO;
          */
         private const FRAME_DIR=[
             "config"        => "/Config",
-            "config.app"    => "/Config/app.php"
+            "config.app"    => "/Config/app.php",
         ];
 
         /**-------------------------------------------------------------------------*/
@@ -45,6 +45,11 @@ use PDO;
          */
         /**-------------------------------------------------------------------------*/
         public function __construct(string|Path|Directory $base_path, ?ServiceRegistry $service_registry){
+            // Check instance already created
+            if(isset(self::$instance)){
+                throw new \Exception("Config instance has already been created!");
+            }
+            
             // Register instance
             self::$instance = $this;
 
@@ -109,8 +114,8 @@ use PDO;
                 }
 
                 // Determine prefix and normalize alias
-                $alias = $this->normalize($key, $this->determinePrefix($path));
-                
+                $alias = $this->normalize("default." . $key, $this->determinePrefix($path));
+
                 // Store in Registry
                 $this->registerPath($alias, $path);
             }
@@ -137,7 +142,7 @@ use PDO;
 
                 // Determine prefix and normalize alias
                 $alias = $this->normalize($key, $this->determinePrefix($path));
-
+                
                 // Store in Registry
                 $this->registerPath($alias, $path);
             }

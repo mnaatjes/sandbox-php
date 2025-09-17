@@ -20,7 +20,7 @@
 
         private ?ServiceRegistry $registry;
 
-        private ?FileSystem $files;
+        private ?FileSystem $fileSys;
 
         private ?DotEnv $env;
 
@@ -51,20 +51,18 @@
 
             // Create Instance of FileSystem:
             // Self-Orients Application & Registers Paths
-            $this->files = new FileSystem($base_path, $this->registry);
-
-            $obj = $this->files->getPath("file.config.app")->load();
-
+            $this->fileSys = new FileSystem($base_path, $this->registry);
+            
             // Create DotEnv Instance
             // DotEnv loads and registers on instantiation
-            //$this->env = new DotEnv(reg("path.env"));
+            $this->env = new DotEnv($this->fileSys->getPath("file.env"));
 
             // Create Config Instance
             // Load Configurations and Register
-            //$this->config = Config::getInstance();
+            $this->config = new Config($this->registry, $this->fileSys);
 
             // Create Container Instance
-            //$this->container = ServiceContainer::getInstance();
+            $this->container = ServiceContainer::getInstance();
         }
         
         /**-------------------------------------------------------------------------*/
@@ -81,61 +79,6 @@
 			}
 			// Return instance
 			return self::$instance;
-        }
-
-        /**-------------------------------------------------------------------------*/
-        /**
-         * Load environmental variables from .env file by instantiating DotEnv Class
-         *
-         * @param Path $env_path
-         * @return void
-         */
-        /**-------------------------------------------------------------------------*/
-        private function registerEnvVars(Path $env_path){
-            // Validate is file
-            if(!$env_path->isFile()){
-                // Unable to load file
-                // Path does not point to file
-                throw new \Exception("Filepath: " . (string)$env_path . "does not point to .env file!");
-            }
-
-            // Create DotEnv Instance
-            // Loads env variables
-            
-
-            // Cache Env Variables
-            foreach($this->env->all() as $key => $value){
-                // Register variables
-                $this->set("config." . $key, $value);
-            }
-        }
-        /**-------------------------------------------------------------------------*/
-        /**
-         * Register all filepaths and verify they exist
-         *
-         * @param Path|null $basePath
-         * @return void
-         */
-        /**-------------------------------------------------------------------------*/
-        private function registerFilepaths(?Path $basePath){
-            // Register Basepath
-            $this->set("path.base", $basePath);
-
-			// Configurate Base Paths
-			foreach([] as $key => $dir){
-                // Join Paths
-                $target = Path::join($basePath, Path::create($dir));
-
-                // Verify Path Exists
-                if(!$target->exists()){
-                    // Path not created
-                    // Instruct user to create
-                    throw new \Exception("Path does NOT exist. Please create directory: " . (string)$target);
-                }
-
-                // Bind paths to Registry based on environment
-                $this->set("path." . $key, $target);
-			}
         }
 
         /**-------------------------------------------------------------------------*/

@@ -3,8 +3,9 @@
      * Declare Namespace
      */
     namespace MVCFrame\Support;
-    use MVCFrame\FileSystem\Path;
-    
+    use MVCFrame\FileSystem\File;
+
+
     /**
      * DotEnv (.env) Class for loading Environment Variables
      * 
@@ -20,7 +21,7 @@
          * Filepath to .env file
          * @var Path|Null $path
          */
-        protected ?Path $path;
+        protected ?File $path;
 
         /**
          * Holds the keys of the loaded environment variables
@@ -33,7 +34,7 @@
          * Constructor for DotEnv Class
          */
         /**-------------------------------------------------------------------------*/
-        public function __construct(?Path $env_path=NULL){
+        public function __construct(?File $env_path){
             // Check Instance
             if(isset(self::$instance)){
                 // Class already Instantiated
@@ -44,13 +45,10 @@
             self::$instance = $this;
 
             // Set default path
-            $this->path = is_null($env_path) ? Path::create("base.config.env") : $env_path;
+            $this->path = $env_path;
 
             // Load ENV Variables
             $this->load();
-
-            // Register ENV Variables
-            $this->register();
         }
 
         /**-------------------------------------------------------------------------*/
@@ -143,16 +141,6 @@
             }
         }
 
-        /**-------------------------------------------------------------------------*/
-        /**-------------------------------------------------------------------------*/
-        private function register(){
-            // Register ENV variables in Configuration sub-array of ServiceRegistry
-            foreach($this->all() as $key => $value){
-                // Stores with alias: "config.<key>"
-                conf($key, $value);
-            }
-
-        }
         /**-------------------------------------------------------------------------*/
         /**
          * Add/update an environment variable.
