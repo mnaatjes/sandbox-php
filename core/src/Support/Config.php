@@ -70,11 +70,11 @@ use MVCFrame\Foundation\ServiceRegistry;
         /**-------------------------------------------------------------------------*/
         private function load(){
             // Load Default and Application Configuration Files
-            $defaultDir = $this->fileSys->getpath("dir.default.config");
-            $appDir     = $this->fileSys->getpath("dir.config");
+            $defaultDir = $this->fileSys->getPath("dir.default.config");
+            $appDir     = $this->fileSys->getPath("dir.config");
 
             var_dump($defaultDir);
-            
+            throw new \Exception("class Config load() function not complete!");
             // Load Application Configs
             // Merge values
         }

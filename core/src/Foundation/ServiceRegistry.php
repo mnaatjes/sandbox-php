@@ -46,12 +46,21 @@
          *
          * @param string $alias
          * @param [type] $value
+         * @param array $other_metadata
          * @return void
          */
         /**-------------------------------------------------------------------------*/
-        public function register(string $alias, $value){
+        public function register(string $alias, $value, array $other_metadata=[]){
             // Explode dot-notation alias
             $keys = explode(".", $alias);
+
+            // Get category for meta-data from keys
+            // Create meta-data object
+            $metaData = new RegistryMetaData(...array_merge(
+                $other_metadata, [
+                    "category" => $keys[0]
+                ]
+            ));
 
             // Create reference to data array
             $temp = &$this->data;

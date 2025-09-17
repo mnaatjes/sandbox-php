@@ -57,12 +57,14 @@
             // DotEnv loads and registers on instantiation
             $this->env = new DotEnv($this->fileSys->getPath("file.env"));
 
+            // DEBUGGING: Test Registry Item
+            
             // Create Config Instance
             // Load Configurations and Register
-            $this->config = new Config($this->registry, $this->fileSys);
+            //$this->config = new Config($this->registry, $this->fileSys);
 
             // Create Container Instance
-            $this->container = ServiceContainer::getInstance();
+            //$this->container = ServiceContainer::getInstance();
         }
         
         /**-------------------------------------------------------------------------*/
