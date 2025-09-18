@@ -133,14 +133,6 @@ classDiagram
     RegistryItem "1" *-- "1" RegistryMetaData : has
 ```
 
-#### Rationale for Immutability
-
-In this design, both `RegistryItem` and `RegistryMetaData` should be treated as immutable Value Objects.
-
-*   **Why `RegistryMetaData` must be immutable:** This object holds the **instructions** (like `type` and `category`) for how to process the raw value. If these instructions could be changed after registration, it would lead to unpredictable behavior and violate the "single source of truth" principle. Its value is defined by its properties, and that value must not change.
-
-*   **Why `RegistryItem` must be immutable:** This object represents a complete entry in the registry, bundling the value and its metadata. If the `RegistryItem` itself were mutable, you could change its underlying value or metadata after it has been registered (e.g., `$item->setValue(...)`). This would directly mutate the state within the registry, which is the exact "action at a distance" problem that a robust registry seeks to prevent.
-
 ### Deeper Dive: Approaches to Item and Metadata Storage
 
 #### Approach 1: Simple Arrays (The Convention-over-Configuration approach)
@@ -184,23 +176,13 @@ classDiagram
     RegistryItem -- "has a" RegistryMetaData
 ```
 
-#### Best Practices and Underlying Concepts
+### Best Practices and Underlying Concepts
 
 When using the Value Object approach, the goal is to create a more robust and predictable system. The underlying computer science concepts are:
 
 *   **Data Abstraction & Encapsulation:** The `RegistryItem` object hides the complexity of its internal structure. You interact with it through a clean API (`getValue()`, `resolve()`), not by accessing raw array keys. This prevents you from depending on a fragile internal structure.
 *   **Self-Documentation:** The class definitions for `RegistryItem` and `RegistryMetaData` form a contract. A developer can read the class to understand exactly what a registry entry consists of. This is impossible with a simple array.
 *   **Immutability:** For maximum safety, Value Objects should be **immutable**. Once a `RegistryItem` is created, it should not be changed. Any modification should result in a new `RegistryItem` instance. This prevents bugs from "action at a distance" where one part of the code unintentionally modifies a configuration object used by another.
-
-#### Verifying Immutability
-
-While immutability is a design discipline, you can programmatically check if a class instance adheres to the common conventions of an immutable value object using PHP's Reflection API. A reliable test would check for the following characteristics:
-
-*   **Is the class `final`?** It should be, to prevent mutable subclasses that could violate the contract.
-*   **Are all properties `readonly` (PHP 8.1+)?** This is the strongest indicator of immutability.
-*   **If not `readonly`, are all properties `private`?** This prevents direct external modification.
-*   **Does it lack public "setter" methods?** The class should not provide any public methods for changing its state (e.g., methods conventionally named `set...`).
-*   **Does it have an `equals()` method?** A true value object should define its own equality based on its properties, not its identity.
 
 ---
 
@@ -214,7 +196,7 @@ The architecture of a registry revolves around a few key philosophies.
 
 ### Instructive vs. Descriptive Metadata
 This is the most critical philosophy for a generic registry.
-*   **Descriptive:** Stating what a value *is* right now (e.g., `gettype('8080')` returns `'string'`). This is not very useful, as the registry can't guess your intent.
+*   **Descriptive:** Stating what a value *is* right now (e.g., `gettype('8080')` returns `string`). This is not very useful, as the registry can't guess your intent.
 *   **Instructive:** Telling the registry what you *want the value to become*. This is the correct approach for a generic registry. By providing `['type' => 'int']`, you are giving the registry the **instruction** it needs to transform the raw value `'8080'` into the usable integer `8080`.
 
 ### The `resolve()` Method: Hydration and Transformation
@@ -373,81 +355,6 @@ Strictly enforcing a schema is complex. The best approach is usually a combinati
 2.  **Schema Validation:** For highly critical applications, you can validate a new entry against a predefined schema array before storing it.
 3.  **Specialized Methods:** Create methods like `registerDbSetting($driver, $key, $value)` which build the alias `database.$driver.$key` internally. This provides a structured API that prevents incorrect aliases.
 
-#### A Deeper Dive: Specialized Methods for API-Driven Structure
-
-This pattern provides a structured, safe API for setting configuration in specific, well-known parts of the hierarchy. Instead of relying on the user to correctly type `database.mysql.host`, you provide a dedicated method that builds the alias internally.
-
-This shifts the responsibility of creating the correct alias from the user to the registry itself, making the API less error-prone and more self-documenting. It is a form of the **Fluent Interface** or **Builder** pattern.
-
-**Best Practices**
-*   **Be Specific:** Each method should map to a clear, top-level namespace (e.g., `database`, `cache`).
-*   **Use Clear Parameters:** The method signature should enforce the structure. `registerDatabaseSetting(string $driver, string $key, mixed $value)` is much clearer than `register(string $alias, ...)`. 
-*   **Return `$this`:** Returning the registry instance from these methods allows for a "fluent" chain of calls: `$registry->setDb(...)->setCache(...);`.
-*   **Validate Inputs:** The specialized method is the perfect place to validate parameters, e.g., ensuring `$driver` is one of the supported database drivers.
-
-**Sample PHP Code**
-
-```php
-// Add this method to your ServiceRegistry class
-
-/**
- * Registers a database setting using a structured, safe API.
- *
- * @param string $driver e.g., 'mysql', 'postgres'
- * @param string $key e.g., 'host', 'port'
- * @param mixed $value The setting value.
- * @param array $metadata Optional metadata.
- * @return self
- */
-public function registerDatabaseSetting(string $driver, string $key, mixed $value, array $metadata = []): self
-{
-    // Build the alias internally, ensuring correctness
-    $alias = "database.{$driver}.{$key}";
-
-    // Call the main generic register method
-    $this->register($alias, $value, $metadata);
-
-    // Return $this for a fluent interface
-    return $this;
-}
-
-// --- Usage ---
-$registry->registerDatabaseSetting('mysql', 'host', '127.0.0.1');
-```
-
-**Diagrams**
-
-*Class Diagram: Shows the new method on the class.*
-```mermaid
-classDiagram
-    class ServiceRegistry {
-        -data: array
-        +register(alias, value, metadata)
-        +lookup(alias)
-        +registerDatabaseSetting(driver, key, value)
-    }
-```
-
-*Sequence Diagram: Shows the internal delegation.*
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Registry as ServiceRegistry
-
-    Client->>Registry: registerDatabaseSetting('mysql', 'host', 'localhost')
-    activate Registry
-    Registry->>Registry: Build alias: "database.mysql.host"
-    Registry->>Registry: call register("database.mysql.host", 'localhost', [])
-    deactivate Registry
-```
-
-**References in Other Systems**
-
-While not always for registries, this pattern of providing structured setters is common in SDKs and configuration builders.
-
-*   **SDK Clients (AWS, Google Cloud):** When creating a client object, you often pass a structured configuration array or use a builder pattern, e.g., `new S3Client(['region' => 'us-east-1'])`. This is safer than asking the user to build a complex configuration string.
-*   **Fluent Interface Builders:** Many libraries use this to build complex objects or configurations. For example, query builders in database libraries: `$query->select('id')->from('users')->where('name', 'sally');`. Each method is a specialized setter that builds part of a larger internal structure.
-
 ---
 
 ## 7. Origins and Computer Science Concepts
@@ -605,3 +512,184 @@ This behavior leads to a critical best practice: **Treat configuration as read-o
 3.  **`resolve()` Should Always Return a Fresh Instance:** To enforce this read-only nature, the `resolve()` method should ideally perform the hydration every time it's called for a non-scalar value. This ensures that every part of the code gets a fresh, identical object, preventing one component from modifying a shared object and affecting another (the "action at a distance" problem in a new form).
 
 **In summary:** If you need to manage data that changes, you should use a dedicated state management service, a database, or a cache—not the configuration registry. The registry should remain a pristine, read-only source of the application's initial setup.
+
+---
+
+## 9. Designing a Formal, Structured Registry API
+
+As a framework matures, moving from a purely convention-based system (where users must remember to type `database.mysql.host` correctly) to a formal, structured API becomes essential. A formal API makes the registry safer, more explicit, and easier to use.
+
+This is achieved by creating **Component-Specific Registry Facades** (or Helpers). These are classes that provide a dedicated, structured API for a specific category of the registry.
+
+### The Core Pattern: Registry Facades
+
+Instead of having every part of your framework call the generic `ServiceRegistry::register()` method, they interact with a facade designed for their specific domain.
+
+*   For each major component (`Database`, `Cache`, `FileSystem`), you create a corresponding facade (`DatabaseRegistry`, `CacheRegistry`, `FileSystemRegistry`).
+*   Each facade holds a reference to the single, main `ServiceRegistry` instance.
+*   Each facade provides domain-specific methods (e.g., `DatabaseRegistry::addConnection(...)`).
+*   These methods contain the logic to build the correct dot-notation alias and then call the underlying generic `ServiceRegistry`.
+
+This pattern provides a layer of abstraction that enforces structure and correctness.
+
+```mermaid
+classDiagram
+    class ServiceRegistry {
+        +register(alias, value, metadata)
+    }
+
+    class DatabaseRegistry {
+        -registry: ServiceRegistry
+        +addConnection(name, host, port)
+    }
+
+    class CacheRegistry {
+        -registry: ServiceRegistry
+        +addStore(name, driver)
+    }
+
+    DatabaseRegistry --|> ServiceRegistry : uses
+    CacheRegistry --|> ServiceRegistry : uses
+```
+
+### Enforcing Dot-Notation and Structure
+
+This pattern directly enforces the dot-notation structure because the user **never writes the alias string themselves.** The method signature is the enforcement.
+
+*   **Before (Error-prone):** `$registry->register('database.mysql.host', 'localhost');`
+*   **After (Structured & Safe):** `$dbRegistry->addConnection('mysql', 'host', 'localhost');`
+
+A typo in the `addConnection` method call will result in an immediate and obvious error from PHP, whereas a typo in the string might fail silently or lead to hard-to-find bugs.
+
+#### Sample PHP Implementation
+
+```php
+// 1. The generic ServiceRegistry remains as designed.
+
+// 2. Create a specialized facade for database configuration.
+class DatabaseRegistry
+{
+    // The top-level category is a constant, ensuring consistency.
+    private const CATEGORY = 'database';
+
+    public function __construct(private ServiceRegistry $registry)
+    {}
+
+    /**
+     * Adds a full database connection configuration.
+     */
+    public function addConnection(string $name, string $driver, string $host, int $port, string $user, string $pass): self
+    {
+        $baseAlias = self::CATEGORY . ".connections." . $name;
+
+        $this->registry->register("{$baseAlias}.driver", $driver);
+        $this->registry->register("{$baseAlias}.host", $host);
+        $this->registry->register("{$baseAlias}.port", $port, ['type' => 'int']);
+        $this->registry->register("{$baseAlias}.user", $user);
+        $this->registry->register("{$baseAlias}.pass", $pass);
+
+        return $this;
+    }
+}
+
+// 3. How client code uses the formal API.
+$mainRegistry = ServiceRegistry::getInstance();
+$dbRegistry = new DatabaseRegistry($mainRegistry);
+
+$dbRegistry->addConnection('mysql_primary', 'mysql', 'localhost', 3306, 'user', 'pass');
+```
+
+### Systematizing the Interaction
+
+To make this pattern consistent across your entire framework, you can use interfaces and have the main `ServiceContainer` manage the facades.
+
+1.  **Create an Interface:** Define a `RegistryFacadeInterface` to ensure all facades share a common structure.
+2.  **Dependency Injection:** Instead of `new DatabaseRegistry(...)`, you would ask the `ServiceContainer` for the `DatabaseRegistry`. The container would be responsible for creating it and injecting the main `ServiceRegistry` instance.
+
+#### Sequence Diagram: Formal API Flow
+
+This diagram shows how the facade acts as an intermediary, creating multiple specific registry entries from a single, structured method call.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant DB_Registry as DatabaseRegistry
+    participant Main_Registry as ServiceRegistry
+
+    Client->>DB_Registry: addConnection('mysql', 'host', 'localhost', ...)
+    activate DB_Registry
+
+    DB_Registry->>DB_Registry: Build alias: "database.connections.mysql.host"
+    DB_Registry->>Main_Registry: register("database.connections.mysql.host", "localhost")
+
+    DB_Registry->>DB_Registry: Build alias: "database.connections.mysql.port"
+    DB_Registry->>Main_Registry: register("database.connections.mysql.port", 3306)
+    
+    Note over DB_Registry, Main_Registry: ...and so on for user, pass, etc.
+
+    deactivate DB_Registry
+```
+
+### Should the User Be Barred from Direct Registry Access?
+
+This is a key architectural decision with a trade-off between strictness and flexibility.
+
+*   **The Strict Approach (Bar Direct Access):** In this model, you would make the generic `ServiceRegistry::register()` method `protected` or `internal`. The only way to add settings would be through a dedicated, trusted facade. This guarantees that 100% of your registry entries are structured and validated. This is suitable for high-security or mission-critical applications where consistency is paramount.
+
+*   **The Pragmatic Approach (Allow Direct Access):** This is the model used by most frameworks. The facades provide a convenient and safe API for 95% of use cases, but the generic `register()` method remains `public` as an "escape hatch." This allows developers to register one-off, unique, or module-specific settings without needing to create a dedicated facade method for a rare edge case.
+
+**Best Practice:** For most frameworks, the **pragmatic approach** is best. Enforce the use of facades through team convention and documentation, but leave the generic method available for flexibility.
+
+### Enforcing the Facade Pattern
+
+How can you ensure all facades are built correctly? Beyond convention, you can use PHP's OOP features.
+
+*   **Approach 1: Abstract Base Class (Recommended):** Create an `abstract class BaseRegistryFacade`. This class can hold the protected `$registry` property and the constructor. You can also force child classes to define their category.
+
+    ```php
+    abstract class BaseRegistryFacade
+    {
+        public function __construct(protected ServiceRegistry $registry) {}
+
+        abstract protected function getCategory(): string;
+    }
+
+    class DatabaseRegistry extends BaseRegistryFacade
+    {
+        protected function getCategory(): string
+        {
+            return 'database';
+        }
+        // ... specific methods like addConnection ...
+    }
+    ```
+
+*   **Approach 2: PHP 8 Attributes:** A more modern, decoupled approach. You create an attribute that declares a class as a facade for a specific category.
+
+    ```php
+    #[\Attribute(\Attribute::TARGET_CLASS)]
+    final class RegistryFacade
+    {
+        public function __construct(public string $category) {}
+    }
+
+    // The ServiceContainer could read this attribute via reflection
+    // to automatically know how to categorize this facade.
+    #[RegistryFacade('database')]
+    class DatabaseRegistry
+    {
+        // ...
+    }
+    ```
+
+```mermaid
+flowchart TD
+    subgraph "Facade Creation via Service Container"
+        A[Client requests DatabaseRegistry] --> B(ServiceContainer);
+        B --> C{Instantiate DatabaseRegistry};
+        C --> D[Get ServiceRegistry instance];
+        D --> E[Inject ServiceRegistry into DatabaseRegistry constructor];
+        E --> F[Return completed facade];
+    end
+    F --> G[Client uses facade];
+```
