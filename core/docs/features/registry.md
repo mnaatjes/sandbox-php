@@ -538,7 +538,7 @@ sequenceDiagram
 
 ---
 
-## 9. Appendix: Advanced Topics
+## 9. Appendix: Advanced Architectural Topics
 
 ### Deeper Dive: Composition of Registry Facades
 
@@ -698,3 +698,59 @@ By extracting the registry system into its own repository/package, you gain seve
 *   **Independent Testing & Versioning:** The package can have its own dedicated test suite and can be versioned independently using `composer` and `git tags`.
 
 The package would contain the generic components: `ServiceRegistry`, `RegistryItem`, `RegistryMetaData`, and perhaps the `BaseRegistryFacade` or `RegistryFacadeInterface`. The framework itself would then depend on this package and contain the concrete facade implementations (`DatabaseRegistry`, `CacheRegistry`, etc.).
+
+### Deeper Dive: A Node-Based Tree Structure
+
+Your observation that the registry is a "tree of nested hash tables" is astute. While PHP's associative arrays serve this purpose, you can enforce an even stricter, more object-oriented structure by replacing the nested arrays with dedicated `RegistryNode` objects.
+
+This pattern is a form of the **Composite Pattern**, where both the branches (`RegistryNode`) and leaves (`RegistryItem`) of the tree are objects that can be treated uniformly.
+
+#### The `RegistryNode` Class
+
+This class would represent a "directory" in the registry tree. Its primary job is to hold children, which can be other `RegistryNode` objects or the final `RegistryItem` leaves.
+
+```php
+// Conceptual Example
+class RegistryNode
+{
+    /** @var array<string, RegistryNode|RegistryItem> */
+    private array $children = [];
+
+    public function setChild(string $key, RegistryNode|RegistryItem $child): void
+    {
+        $this->children[$key] = $child;
+    }
+
+    public function getChild(string $key): RegistryNode|RegistryItem|null
+    {
+        return $this->children[$key] ?? null;
+    }
+    // ... other helpful methods like hasChild(), getChildren(), etc.
+}
+```
+
+#### Pros vs. Cons
+
+*   **Pros:**
+    *   **Ultimate Type Safety:** You are guaranteed that every node in your registry tree is a `RegistryNode` and every leaf is a `RegistryItem`. Checks become `instanceof RegistryNode` instead of `is_array()`.
+    *   **Encapsulated Behavior:** You can add methods directly to the `RegistryNode` objects, for example, a `search()` method that only searches within its own branch of the tree.
+*   **Cons:**
+    *   **Increased Complexity:** You must create and manage another class. The logic in the `register` method becomes slightly more complex as it must instantiate `new RegistryNode()` instead of just `[]`.
+    *   **Performance Overhead:** Instantiating thousands of small objects can be marginally slower and use more memory than native arrays. For most web applications, this is a negligible and worthwhile trade-off for the gain in structure.
+
+#### Impact on the `register()` Method
+
+The internal logic would change from creating arrays to creating objects.
+
+*   **Before:** `$temp[$key] = [];`
+*   **After:** `$temp->setChild($key, new RegistryNode());`
+
+This makes the registry a true object graph, which is a very robust and powerful architectural pattern.
+
+```mermaid
+classDiagram
+    note "A true object graph"
+    ServiceRegistry o-- "1" RegistryNode : has root node
+    RegistryNode o-- "*" RegistryNode : can have children nodes
+    RegistryNode o-- "*" RegistryItem : can have leaf items
+```
