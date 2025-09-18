@@ -133,6 +133,14 @@ classDiagram
     RegistryItem "1" *-- "1" RegistryMetaData : has
 ```
 
+#### Rationale for Immutability
+
+In this design, both `RegistryItem` and `RegistryMetaData` should be treated as immutable Value Objects.
+
+*   **Why `RegistryMetaData` must be immutable:** This object holds the **instructions** (like `type` and `category`) for how to process the raw value. If these instructions could be changed after registration, it would lead to unpredictable behavior and violate the "single source of truth" principle. Its value is defined by its properties, and that value must not change.
+
+*   **Why `RegistryItem` must be immutable:** This object represents a complete entry in the registry, bundling the value and its metadata. If the `RegistryItem` itself were mutable, you could change its underlying value or metadata after it has been registered (e.g., `$item->setValue(...)`). This would directly mutate the state within the registry, which is the exact "action at a distance" problem that a robust registry seeks to prevent.
+
 ### Deeper Dive: Approaches to Item and Metadata Storage
 
 #### Approach 1: Simple Arrays (The Convention-over-Configuration approach)
@@ -183,6 +191,16 @@ When using the Value Object approach, the goal is to create a more robust and pr
 *   **Data Abstraction & Encapsulation:** The `RegistryItem` object hides the complexity of its internal structure. You interact with it through a clean API (`getValue()`, `resolve()`), not by accessing raw array keys. This prevents you from depending on a fragile internal structure.
 *   **Self-Documentation:** The class definitions for `RegistryItem` and `RegistryMetaData` form a contract. A developer can read the class to understand exactly what a registry entry consists of. This is impossible with a simple array.
 *   **Immutability:** For maximum safety, Value Objects should be **immutable**. Once a `RegistryItem` is created, it should not be changed. Any modification should result in a new `RegistryItem` instance. This prevents bugs from "action at a distance" where one part of the code unintentionally modifies a configuration object used by another.
+
+#### Verifying Immutability
+
+While immutability is a design discipline, you can programmatically check if a class instance adheres to the common conventions of an immutable value object using PHP's Reflection API. A reliable test would check for the following characteristics:
+
+*   **Is the class `final`?** It should be, to prevent mutable subclasses that could violate the contract.
+*   **Are all properties `readonly` (PHP 8.1+)?** This is the strongest indicator of immutability.
+*   **If not `readonly`, are all properties `private`?** This prevents direct external modification.
+*   **Does it lack public "setter" methods?** The class should not provide any public methods for changing its state (e.g., methods conventionally named `set...`).
+*   **Does it have an `equals()` method?** A true value object should define its own equality based on its properties, not its identity.
 
 ---
 
@@ -493,3 +511,97 @@ sequenceDiagram
     Controller-->>User: Responds with view containing app name
     deactivate Controller
 ```
+
+---
+
+## 8. Appendix: Questions
+
+### How do you enforce immutability of a RegistryItem object once it is registered?
+
+Based on the document, the key principle is that any modification should result in a **new** `RegistryItem` instance, rather than changing the original one.
+
+You enforce this in PHP through a combination of three techniques:
+
+1.  **Make properties private:** This prevents direct modification from outside the class.
+2.  **Initialize all properties in the constructor:** The object is created in its complete and final state.
+3.  **Omit setters, use "withers":** Instead of methods that change properties (like `setValue()`), you create methods that return a *new* instance of the object with the updated value. These are often called "wither" methods (e.g., `withValue()`).
+
+Here is a code example of how the `RegistryItem` class could be implemented to be immutable:
+
+```php
+final class RegistryItem
+{
+    public function __construct(
+        private readonly mixed $value,
+        private readonly RegistryMetaData $metadata
+    ) {
+        // Properties are initialized here and cannot be changed.
+        // Using 'readonly' provides an extra layer of enforcement.
+    }
+
+    public function getValue(): mixed
+    {
+        return $this->value;
+    }
+
+    public function getMetadata(): RegistryMetaData
+    {
+        return $this->metadata;
+    }
+
+    /**
+     * Returns a NEW RegistryItem with a different value.
+     * The original object is not modified.
+     */
+    public function withValue(mixed $newValue): self
+    {
+        // Create and return a new instance with the new value
+        return new self($newValue, $this->metadata);
+    }
+}
+```
+
+With this implementation, once a `RegistryItem` is created and registered, it cannot be altered. Any attempt to "change" it just gives you back a completely new object, preserving the integrity of the original.
+
+```mermaid
+classDiagram
+    note "An immutable implementation of RegistryItem"
+    class RegistryItem {
+        -value: mixed
+        -metadata: RegistryMetaData
+        +__construct(value, metadata)
+        +getValue(): mixed
+        +getMetadata(): RegistryMetaData
+        +withValue(newValue): RegistryItem
+    }
+```
+
+### What if that object - when pulled by lookup() is unserialized / hydrated (or an array has an element added to it)? Does the serialized form of that object in the registry change also? What is best practice concerning this?
+
+That's an excellent question. This touches on the lifecycle of a configuration value and the difference between the stored data and the in-memory representation.
+
+The short answer is: **No, the original serialized form in the registry does not change.**
+
+#### The Hydration/Unserialization Process is One-Way
+
+Think of the process as a one-way factory assembly line:
+
+1.  **Storage:** The registry stores the "raw material"—a serialized string, a simple array from a config file, or some other "dry" data.
+2.  **Lookup & Hydration:** When you call `lookup('some.value')`, the registry's `resolve()` method acts as a factory. It takes the raw material and *builds a brand new object* from it. This is hydration/unserialization.
+3.  **Return:** The registry gives you the newly created object.
+
+The crucial point is that the finished product (the hydrated object) has **no link back to the raw material** (the serialized string). Modifying the object you received is like drawing a mustache on a car that just came off the assembly line; it doesn't change the factory's blueprint or the next car that gets made.
+
+The same is true for arrays. When `lookup()` returns an array, PHP gives you a **copy** of that array. Adding an element to your copy does not affect the original array stored in the registry.
+
+#### What is the Best Practice?
+
+This behavior leads to a critical best practice: **Treat configuration as read-only and stateless.**
+
+1.  **Configuration is for Reading, Not Writing:** The registry's purpose is to provide a consistent source of truth for configuration that is established when the application boots. It is not designed to be a place to store and manage application *state* that changes during a request.
+
+2.  **Avoid In-Memory State Drift:** If you hydrate an object, modify it, and then another part of the application looks up and hydrates the *same* configuration value, it will get a *new, clean* object based on the original raw data. The two parts of your application would now have different versions of the "same" configuration, which is a recipe for subtle and hard-to-find bugs.
+
+3.  **`resolve()` Should Always Return a Fresh Instance:** To enforce this read-only nature, the `resolve()` method should ideally perform the hydration every time it's called for a non-scalar value. This ensures that every part of the code gets a fresh, identical object, preventing one component from modifying a shared object and affecting another (the "action at a distance" problem in a new form).
+
+**In summary:** If you need to manage data that changes, you should use a dedicated state management service, a database, or a cache—not the configuration registry. The registry should remain a pristine, read-only source of the application's initial setup.

@@ -4,6 +4,8 @@
 
 How do you enforce immutability of a RegistryItem object once it is registered?
 
+A: Any modification should result in a new RegistryItem Instance
+
 What happens if a value is changed? e.g. $item = lookup(some.value.here) $item++ register($item)
 
 ## 2.0 Framework and "Smart" Methods
