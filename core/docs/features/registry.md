@@ -421,101 +421,7 @@ sequenceDiagram
 
 ---
 
-## 8. Appendix: Questions
-
-### How do you enforce immutability of a RegistryItem object once it is registered?
-
-Based on the document, the key principle is that any modification should result in a **new** `RegistryItem` instance, rather than changing the original one.
-
-You enforce this in PHP through a combination of three techniques:
-
-1.  **Make properties private:** This prevents direct modification from outside the class.
-2.  **Initialize all properties in the constructor:** The object is created in its complete and final state.
-3.  **Omit setters, use "withers":** Instead of methods that change properties (like `setValue()`), you create methods that return a *new* instance of the object with the updated value. These are often called "wither" methods (e.g., `withValue()`).
-
-Here is a code example of how the `RegistryItem` class could be implemented to be immutable:
-
-```php
-final class RegistryItem
-{
-    public function __construct(
-        private readonly mixed $value,
-        private readonly RegistryMetaData $metadata
-    ) {
-        // Properties are initialized here and cannot be changed.
-        // Using 'readonly' provides an extra layer of enforcement.
-    }
-
-    public function getValue(): mixed
-    {
-        return $this->value;
-    }
-
-    public function getMetadata(): RegistryMetaData
-    {
-        return $this->metadata;
-    }
-
-    /**
-     * Returns a NEW RegistryItem with a different value.
-     * The original object is not modified.
-     */
-    public function withValue(mixed $newValue): self
-    {
-        // Create and return a new instance with the new value
-        return new self($newValue, $this->metadata);
-    }
-}
-```
-
-With this implementation, once a `RegistryItem` is created and registered, it cannot be altered. Any attempt to "change" it just gives you back a completely new object, preserving the integrity of the original.
-
-```mermaid
-classDiagram
-    note "An immutable implementation of RegistryItem"
-    class RegistryItem {
-        -value: mixed
-        -metadata: RegistryMetaData
-        +__construct(value, metadata)
-        +getValue(): mixed
-        +getMetadata(): RegistryMetaData
-        +withValue(newValue): RegistryItem
-    }
-```
-
-### What if that object - when pulled by lookup() is unserialized / hydrated (or an array has an element added to it)? Does the serialized form of that object in the registry change also? What is best practice concerning this?
-
-That's an excellent question. This touches on the lifecycle of a configuration value and the difference between the stored data and the in-memory representation.
-
-The short answer is: **No, the original serialized form in the registry does not change.**
-
-#### The Hydration/Unserialization Process is One-Way
-
-Think of the process as a one-way factory assembly line:
-
-1.  **Storage:** The registry stores the "raw material"—a serialized string, a simple array from a config file, or some other "dry" data.
-2.  **Lookup & Hydration:** When you call `lookup('some.value')`, the registry's `resolve()` method acts as a factory. It takes the raw material and *builds a brand new object* from it. This is hydration/unserialization.
-3.  **Return:** The registry gives you the newly created object.
-
-The crucial point is that the finished product (the hydrated object) has **no link back to the raw material** (the serialized string). Modifying the object you received is like drawing a mustache on a car that just came off the assembly line; it doesn't change the factory's blueprint or the next car that gets made.
-
-The same is true for arrays. When `lookup()` returns an array, PHP gives you a **copy** of that array. Adding an element to your copy does not affect the original array stored in the registry.
-
-#### What is the Best Practice?
-
-This behavior leads to a critical best practice: **Treat configuration as read-only and stateless.**
-
-1.  **Configuration is for Reading, Not Writing:** The registry's purpose is to provide a consistent source of truth for configuration that is established when the application boots. It is not designed to be a place to store and manage application *state* that changes during a request.
-
-2.  **Avoid In-Memory State Drift:** If you hydrate an object, modify it, and then another part of the application looks up and hydrates the *same* configuration value, it will get a *new, clean* object based on the original raw data. The two parts of your application would now have different versions of the "same" configuration, which is a recipe for subtle and hard-to-find bugs.
-
-3.  **`resolve()` Should Always Return a Fresh Instance:** To enforce this read-only nature, the `resolve()` method should ideally perform the hydration every time it's called for a non-scalar value. This ensures that every part of the code gets a fresh, identical object, preventing one component from modifying a shared object and affecting another (the "action at a distance" problem in a new form).
-
-**In summary:** If you need to manage data that changes, you should use a dedicated state management service, a database, or a cache—not the configuration registry. The registry should remain a pristine, read-only source of the application's initial setup.
-
----
-
-## 9. Designing a Formal, Structured Registry API
+## 8. Designing a Formal, Structured Registry API
 
 As a framework matures, moving from a purely convention-based system (where users must remember to type `database.mysql.host` correctly) to a formal, structured API becomes essential. A formal API makes the registry safer, more explicit, and easier to use.
 
@@ -630,66 +536,165 @@ sequenceDiagram
     deactivate DB_Registry
 ```
 
-### Should the User Be Barred from Direct Registry Access?
+---
 
-This is a key architectural decision with a trade-off between strictness and flexibility.
+## 9. Appendix: Advanced Topics
 
-*   **The Strict Approach (Bar Direct Access):** In this model, you would make the generic `ServiceRegistry::register()` method `protected` or `internal`. The only way to add settings would be through a dedicated, trusted facade. This guarantees that 100% of your registry entries are structured and validated. This is suitable for high-security or mission-critical applications where consistency is paramount.
+### Deeper Dive: Composition of Registry Facades
 
-*   **The Pragmatic Approach (Allow Direct Access):** This is the model used by most frameworks. The facades provide a convenient and safe API for 95% of use cases, but the generic `register()` method remains `public` as an "escape hatch." This allows developers to register one-off, unique, or module-specific settings without needing to create a dedicated facade method for a rare edge case.
+#### Are Facades Singletons?
 
-**Best Practice:** For most frameworks, the **pragmatic approach** is best. Enforce the use of facades through team convention and documentation, but leave the generic method available for flexibility.
+You may have noticed that the `DatabaseRegistry` facade has a public constructor and is not a Singleton. This is intentional and desirable.
 
-### Enforcing the Facade Pattern
+*   **Why it works:** The facades themselves are lightweight, **stateless** objects. Their only job is to provide a structured API and delegate calls to the *true* Singleton: the main `ServiceRegistry`. Because they have no state of their own, creating a new facade instance is extremely cheap and has no performance impact.
+*   **Benefits:** Not making them singletons provides greater flexibility. It makes them easier to test and allows you to create special instances if needed, for example, a facade that points to a different, temporary registry during a specific test.
 
-How can you ensure all facades are built correctly? Beyond convention, you can use PHP's OOP features.
+#### Why Pass the ServiceRegistry? (Dependency Injection vs. Service Locator)
 
-*   **Approach 1: Abstract Base Class (Recommended):** Create an `abstract class BaseRegistryFacade`. This class can hold the protected `$registry` property and the constructor. You can also force child classes to define their category.
+Our example shows the `ServiceRegistry` being passed into the facade's constructor. One might ask, "Why not just call `ServiceRegistry::getInstance()` inside the facade?"
 
-    ```php
-    abstract class BaseRegistryFacade
-    {
-        public function __construct(protected ServiceRegistry $registry) {}
+This question touches on a core architectural principle: **Dependency Injection**.
 
-        abstract protected function getCategory(): string;
-    }
+*   **Our Approach (Dependency Injection):** By "injecting" the `ServiceRegistry` dependency into the constructor, the `DatabaseRegistry` class openly advertises what it needs to function. This is considered a best practice for several reasons:
+    *   **Testability:** This is the most important benefit. During unit testing, you can easily create a `DatabaseRegistry` and pass it a *mock* or *fake* `ServiceRegistry`. This allows you to test the facade's logic (e.g., that it builds the correct aliases) in complete isolation, without needing the global state of the real registry.
+    *   **Flexibility:** It decouples the facade from the concrete `ServiceRegistry` class. It could accept any object that implements a `RegistryInterface`, making your code more flexible and reusable.
 
-    class DatabaseRegistry extends BaseRegistryFacade
-    {
-        protected function getCategory(): string
-        {
-            return 'database';
-        }
-        // ... specific methods like addConnection ...
-    }
-    ```
+*   **The Alternative (Service Locator):** If the facade called `ServiceRegistry::getInstance()` internally, it would be using the **Service Locator** pattern. This tightly couples the facade to that specific global class, making it much harder to test in isolation.
 
-*   **Approach 2: PHP 8 Attributes:** A more modern, decoupled approach. You create an attribute that declares a class as a facade for a specific category.
+```mermaid
+sequenceDiagram
+    participant Test
+    participant Facade as DatabaseRegistry
+    participant MockRegistry
+    participant GlobalRegistry as ServiceRegistry
 
-    ```php
-    #[\Attribute(\Attribute::TARGET_CLASS)]
-    final class RegistryFacade
-    {
-        public function __construct(public string $category) {}
-    }
+    Test->>Facade: __construct(MockRegistry)
+    note right of Test: Dependency Injection allows passing a fake registry.
 
-    // The ServiceContainer could read this attribute via reflection
-    // to automatically know how to categorize this facade.
-    #[RegistryFacade('database')]
-    class DatabaseRegistry
-    {
-        // ...
-    }
-    ```
+    Test->>Facade: addConnection(...)
+    activate Facade
+    Facade->>MockRegistry: register(...)
+    note left of Facade: Facade talks to the mock, not the global registry.
+    deactivate Facade
+
+    participant BadFacade
+    Test->>BadFacade: __construct()
+    note right of Test: Service Locator style facade.
+    Test->>BadFacade: addConnection(...)
+    activate BadFacade
+    BadFacade->>GlobalRegistry: getInstance()
+    note left of BadFacade: Hard-coded to the global instance, cannot be isolated for testing.
+    BadFacade->>GlobalRegistry: register(...)
+    deactivate BadFacade
+```
+
+#### How do PHP Attributes Contribute to Enforceability?
+
+As mentioned previously, PHP Attributes are a modern way to add machine-readable metadata to classes. They don't actively *do* anything, but they provide a formal way to "label" a class for another tool to inspect.
+
+In this context, you could define a `#[RegistryFacade]` attribute:
+
+```php
+#[\Attribute(\Attribute::TARGET_CLASS)]
+final class RegistryFacade
+{
+    public function __construct(public string $category) {}
+}
+
+#[RegistryFacade('database')]
+class DatabaseRegistry
+{
+    // ...
+}
+```
+
+**How this enforces anything:** The "enforcement" comes from the tool that builds your application. For example, during bootstrapping, you could have a script that uses **Reflection** to:
+1.  Scan all classes in a specific directory.
+2.  Find all classes that have the `#[RegistryFacade]` attribute.
+3.  Read the `category` from the attribute.
+4.  Automatically register that facade in the `ServiceContainer` with the correct dependencies.
+
+If a developer creates a new facade but forgets the attribute, the bootstrap script would fail or ignore it, thus "enforcing" the pattern.
 
 ```mermaid
 flowchart TD
-    subgraph "Facade Creation via Service Container"
-        A[Client requests DatabaseRegistry] --> B(ServiceContainer);
-        B --> C{Instantiate DatabaseRegistry};
-        C --> D[Get ServiceRegistry instance];
-        D --> E[Inject ServiceRegistry into DatabaseRegistry constructor];
-        E --> F[Return completed facade];
-    end
-    F --> G[Client uses facade];
+    A[Bootstrap Script Starts] --> B[Scan Classes in /Facades dir];
+    B --> C{For each class...};
+    C --> D{Has #[RegistryFacade] attribute?};
+    D -- No --> C;
+    D -- Yes --> E[Read category from attribute];
+    E --> F[Auto-register Facade in Service Container];
+    F --> C;
+    C -- End of loop --> Z[End];
 ```
+
+### Deeper Dive: Implementation and Bootstrapping Flow
+
+#### Should Facades Live in the DI / Service Container?
+
+Yes, absolutely. This is the ideal practice that connects all the pieces of the architecture.
+
+The `ServiceContainer`'s job is to manage object creation and dependencies. The facades, while simple, are perfect candidates for this. By registering your `DatabaseRegistry` facade with the `ServiceContainer`, you gain:
+
+*   **Automatic Dependency Injection:** The container will automatically see that the `DatabaseRegistry` needs a `ServiceRegistry` in its constructor, and it will provide the singleton instance.
+*   **Centralized Access:** Any part of your code that needs to set database configuration can simply ask the container for the `DatabaseRegistry` instance, without needing to construct it manually.
+
+#### The Bootstrapping Lifecycle
+
+Here is the complete flow, from application start to a fully configured registry.
+
+1.  **App Start:** An entrypoint script (`index.php`) runs.
+2.  **Core Services Instantiated:** The `ServiceContainer` and `ServiceRegistry` singletons are created. They are both empty.
+3.  **Configuration Loading (The Bootstrap Phase):** A dedicated bootstrap script or service provider runs. This is the only place that should be concerned with *writing* configuration.
+4.  **Facade Retrieval:** The bootstrap script asks the `ServiceContainer` for a specific facade, e.g., `$dbRegistry = $container->get(DatabaseRegistry::class);`.
+5.  **Facade Usage:** The script then calls the specialized methods on the facade, passing it values loaded from environment files (`.env`) or config arrays: `$dbRegistry->addConnection('mysql', ...);`.
+6.  **Registry Population:** The facade internally builds the correct dot-notation aliases and calls the main `ServiceRegistry`'s `register()` method, populating it with data.
+7.  **Application Run:** The bootstrap phase finishes. The registry is now populated and read-only. The main application logic (Controllers, etc.) runs. When a component needs a setting, it looks it up from the registry.
+
+```mermaid
+sequenceDiagram
+    participant Entrypoint
+    participant Bootstrap
+    participant Container as ServiceContainer
+    participant DB_Facade as DatabaseRegistry
+    participant Registry as ServiceRegistry
+    participant Controller
+
+    Entrypoint->>Bootstrap: run()
+    activate Bootstrap
+    Bootstrap->>Container: get(DatabaseRegistry)
+    activate Container
+    Container->>DB_Facade: new(ServiceRegistry.getInstance())
+    activate DB_Facade
+    deactivate DB_Facade
+    Container-->>Bootstrap: returns DatabaseRegistry instance
+    deactivate Container
+
+    Bootstrap->>DB_Facade: addConnection(...)
+    activate DB_Facade
+    DB_Facade->>Registry: register('database...', ...)
+    deactivate DB_Facade
+
+    deactivate Bootstrap
+
+    Note over Entrypoint, Controller: ...Routing and Request Handling...
+
+    Entrypoint->>Controller: execute()
+    activate Controller
+    Controller->>Registry: lookup('database.connections...')
+    activate Registry
+    Registry-->>Controller: returns setting
+    deactivate Registry
+    deactivate Controller
+```
+
+#### Should the Registry be a Standalone Package?
+
+Yes. For a mature framework, this is an excellent architectural goal.
+
+By extracting the registry system into its own repository/package, you gain several advantages:
+*   **Reusability:** You can use your robust registry component in other projects.
+*   **Decoupling:** It forces a clean separation. The package cannot have any dependencies on your specific application logic.
+*   **Independent Testing & Versioning:** The package can have its own dedicated test suite and can be versioned independently using `composer` and `git tags`.
+
+The package would contain the generic components: `ServiceRegistry`, `RegistryItem`, `RegistryMetaData`, and perhaps the `BaseRegistryFacade` or `RegistryFacadeInterface`. The framework itself would then depend on this package and contain the concrete facade implementations (`DatabaseRegistry`, `CacheRegistry`, etc.).
