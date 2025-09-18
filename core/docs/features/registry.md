@@ -618,9 +618,9 @@ If a developer creates a new facade but forgets the attribute, the bootstrap scr
 
 ```mermaid
 flowchart TD
-    A[Bootstrap Script Starts] --> B[Scan Classes in /Facades dir];
-    B --> C{For each class...};
-    C --> D{Has #[RegistryFacade] attribute?};
+    A[Bootstrap Script Starts] --> B[Scan Facades Directory];
+    B --> C{For each class};
+    C --> D{Has RegistryFacade attribute};
     D -- No --> C;
     D -- Yes --> E[Read category from attribute];
     E --> F[Auto-register Facade in Service Container];
